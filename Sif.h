@@ -32,48 +32,48 @@ class HolySwordWolfAI {
     float m_actionCooldown = 0;
     int m_aggressionLevel = 0; // Tracks from script's ai:GetNumber(0)
     
-    // Distance thresholds from the scripts
-    const float ATTACK_CLOSE = 2.0f;
-    const float ATTACK_MID = 5.2f;
-    const float ATTACK_FAR = 13.5f;
+    // Distance thresholds
+    const float ATTACK_CLOSE = 80.0f;
+    const float ATTACK_MID = 120.0f;
+    const float ATTACK_FAR = 300.0f;
     
 public:
     HolySwordWolfAI(Boss* entity, Player* player);
     
-    void Update(float deltaTime);
-    void OnDamaged(float damage, const Vector2D& sourcePos);
-    void OnGuardBroken();
-    void OnProjectileDetected(const Vector2D& projectilePos);
+    void update(float deltaTime);
+    void onDamaged(float damage, const Vector2D& sourcePos);
+    void onGuardBroken();
+    void onProjectileDetected(const Vector2D& projectilePos);
     
     // Core AI functions
-    void SelectAction();
-    void ExecuteGoal(std::unique_ptr<AIGoal> goal);
-    void ClearGoals();
-    void AddGoal(std::unique_ptr<AIGoal> goal);
+    void selectAction();
+    void executeGoal(std::unique_ptr<AIGoal> goal);
+    void clearGoals();
+    void addGoal(std::unique_ptr<AIGoal> goal);
     
     // Utility functions
-    float GetDistanceToTarget() const;
-    float GetAngleToTarget() const;
-    bool IsTargetBehind() const;
-    bool IsTargetOnSide(bool checkRight) const;
-    float GetTargetHPRate() const;
-    float GetSelfHPRate() const;
-    int GetRandomInt(int min, int max);
-    float GetRandomFloat(float min, float max);
+    float getDistanceToTarget() const;
+    float getAngleToTarget() const;
+    bool isTargetBehind() const;
+    bool isTargetOnSide(bool checkRight) const;
+    float getTargetHPRate() const;
+    float getSelfHPRate() const;
+    int getRandomInt(int min, int max);
+    float getRandomFloat(float min, float max);
     
     // State checks
-    bool IsEnhanced() const { return m_isEnhanced; }
-    void SetEnhanced(bool enhanced) { m_isEnhanced = enhanced; }
+    bool isEnhanced() const { return m_isEnhanced; }
+    void setEnhanced(bool enhanced) { m_isEnhanced = enhanced; }
     
     // Movement functions for goals
-    void MoveToward(const Vector2D& pos, float speed);
-    void MoveAway(const Vector2D& pos, float speed);
-    void MoveSideways(bool right, float speed);
-    void PerformStep(StepType type, float distance);
+    void moveToward(const Vector2D& pos, float speed);
+    void moveAway(const Vector2D& pos, float speed);
+    void moveSideways(bool right, float speed);
+    void performStep(StepType type, float distance);
     
     // Attack functions for goals
-    void StartAttack(AttackType type);
-    bool IsAttacking() const;
+    void startAttack(AttackType type);
+    bool isAttacking() const;
     
     // Friend access for goals
     friend class AttackGoal;

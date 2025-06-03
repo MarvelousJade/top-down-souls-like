@@ -119,7 +119,7 @@ void Game::handleEvents() {
             }
             // Add special effect toggle for testing (optional)
             else if (event.key.keysym.sym == SDLK_e && event.key.keysym.mod & KMOD_CTRL) {
-                m_sifAI->SetEnhanced(!m_sifAI->IsEnhanced());  // Ctrl+E to toggle enhanced mode
+                m_sifAI->setEnhanced(!m_sifAI->isEnhanced());  // Ctrl+E to toggle enhanced mode
             }
         }
     }
@@ -146,7 +146,7 @@ void Game::update(float deltaTime) {
     }
     
     // Update AI first (it will command the boss)
-    m_sifAI->Update(deltaTime);
+    m_sifAI->update(deltaTime);
 
     // Store positions before update for collision resolution
     // Vector2D playerPosBeforeUpdate = m_player->getPosition();

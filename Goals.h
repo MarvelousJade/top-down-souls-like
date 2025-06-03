@@ -34,9 +34,9 @@ enum class StepType {
 class AIGoal {
 public:
     virtual ~AIGoal() = default;
-    virtual void Activate(class HolySwordWolfAI* ai) = 0;
-    virtual bool Update(class HolySwordWolfAI* ai, float deltaTime) = 0; // Returns true when complete
-    virtual void Terminate(class HolySwordWolfAI* ai) {}
+    virtual void activate(class HolySwordWolfAI* ai) = 0;
+    virtual bool update(class HolySwordWolfAI* ai, float deltaTime) = 0; // Returns true when complete
+    virtual void terminate(class HolySwordWolfAI* ai) {}
     
     float lifeTime = -1.0f; // -1 means infinite
 };
@@ -52,8 +52,8 @@ public:
     AttackGoal(AttackType type, float charge = 0.5f) 
         : attackType(type), chargeTime(charge) {}
     
-    void Activate(class HolySwordWolfAI* ai) override;
-    bool Update(class HolySwordWolfAI* ai, float deltaTime) override;
+    void activate(class HolySwordWolfAI* ai) override;
+    bool update(class HolySwordWolfAI* ai, float deltaTime) override;
 };
 
 class MoveToTargetGoal : public AIGoal {
@@ -65,8 +65,8 @@ public:
     MoveToTargetGoal(float dist, bool shouldWalk = false) 
         : targetDistance(dist), walk(shouldWalk) {}
     
-    void Activate(class HolySwordWolfAI* ai) override;
-    bool Update(class HolySwordWolfAI* ai, float deltaTime) override;
+    void activate(class HolySwordWolfAI* ai) override;
+    bool update(class HolySwordWolfAI* ai, float deltaTime) override;
 };
 
 class StepGoal : public AIGoal {
@@ -79,8 +79,8 @@ public:
     StepGoal(StepType type, float dist = 5.0f) 
         : stepType(type), stepDistance(dist) {}
     
-    void Activate(class HolySwordWolfAI* ai) override;
-    bool Update(class HolySwordWolfAI* ai, float deltaTime) override;
+    void activate(class HolySwordWolfAI* ai) override;
+    bool update(class HolySwordWolfAI* ai, float deltaTime) override;
 };
 
 class SidewayMoveGoal : public AIGoal {
@@ -93,6 +93,6 @@ public:
     SidewayMoveGoal(bool right, float dur) 
         : moveRight(right), duration(dur) {}
     
-    void Activate(class HolySwordWolfAI* ai) override;
-    bool Update(class HolySwordWolfAI* ai, float deltaTime) override;
+    void activate(class HolySwordWolfAI* ai) override;
+    bool update(class HolySwordWolfAI* ai, float deltaTime) override;
 };

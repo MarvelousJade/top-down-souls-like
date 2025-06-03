@@ -4,6 +4,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+float bossAttackRange = 120.0f;
+
 Boss::Boss(float x, float y)
     : Entity(x, y, 80, 60, 300),
       m_animState(BossAnimState::IDLE),
@@ -16,7 +18,7 @@ Boss::Boss(float x, float y)
       m_swordOnRightSide(true),
       m_baseAttackDamage(25.0f),
       m_currentAttackDamage(25.0f),
-      m_attackRange(120.0f),
+      m_attackRange(bossAttackRange),
       m_hasDealtDamage(false),
       m_moveSpeed(310.0f) {
     updateSwordPosition();
@@ -31,7 +33,7 @@ void Boss::update(float deltaTime) {
         Vector2D toTarget = m_targetMovePosition - m_position;
         float distance = toTarget.length();
         
-        if (distance > 5.0f) {
+        if (distance > 120.0f) {
             Vector2D movement = toTarget.normalized() * m_moveSpeed * deltaTime;
             m_position = m_position + movement;
             
@@ -43,7 +45,6 @@ void Boss::update(float deltaTime) {
             m_animState = BossAnimState::IDLE;
         }
     }
-    
     updateSwordPosition();
 }
 

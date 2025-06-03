@@ -1,10 +1,11 @@
 #include "Sif.h"
 #include "Vector2D.h"
 #include <random>
+#include <iostream>
 
 
 // Updated Goal implementations to work with Boss
-void AttackGoal::Activate(HolySwordWolfAI* ai) {
+void AttackGoal::activate(HolySwordWolfAI* ai) {
     currentTime = 0;
     
     // Map AttackType to BossAttackAnim
@@ -55,7 +56,7 @@ void AttackGoal::Activate(HolySwordWolfAI* ai) {
     ai->m_self->startAttackAnimation(bossAnim);
 }
 
-bool AttackGoal::Update(HolySwordWolfAI* ai, float deltaTime) {
+bool AttackGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     currentTime += deltaTime;
     
     // Wait for attack animation to finish
@@ -66,7 +67,7 @@ bool AttackGoal::Update(HolySwordWolfAI* ai, float deltaTime) {
     return false;
 }
 
-void MoveToTargetGoal::Activate(HolySwordWolfAI* ai) {
+void MoveToTargetGoal::activate(HolySwordWolfAI* ai) {
     // Calculate target position based on desired distance
     Vector2D toTarget = ai->m_target->getPosition() - ai->m_self->getPosition();
     float currentDist = toTarget.length();
@@ -86,8 +87,8 @@ void MoveToTargetGoal::Activate(HolySwordWolfAI* ai) {
     }
 }
 
-bool MoveToTargetGoal::Update(HolySwordWolfAI* ai, float deltaTime) {
-    float currentDist = ai->GetDistanceToTarget();
+bool MoveToTargetGoal::update(HolySwordWolfAI* ai, float deltaTime) {
+    float currentDist = ai->getDistanceToTarget();
     
     if (std::abs(currentDist - targetDistance) < 15.0f) {
         ai->m_self->stopMoving();
@@ -97,13 +98,13 @@ bool MoveToTargetGoal::Update(HolySwordWolfAI* ai, float deltaTime) {
     // Check if still moving
     if (!ai->m_self->isAttacking() && !ai->m_self->isRecovering()) {
         // Recalculate if needed
-        Activate(ai);
+        activate(ai);
     }
     
     return false;
 }
 
-void StepGoal::Activate(HolySwordWolfAI* ai) {
+void StepGoal::activate(HolySwordWolfAI* ai) {
     currentProgress = 0;
     
     Vector2D stepDir;
@@ -124,12 +125,12 @@ void StepGoal::Activate(HolySwordWolfAI* ai) {
     ai->m_self->performStep(stepDir, stepDistance * 20.0f); // Scale up distance
 }
 
-bool StepGoal::Update(HolySwordWolfAI* ai, float deltaTime) {
+bool StepGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     currentProgress += deltaTime;
     return currentProgress >= 0.3f; // Quick step
 }
 
-void SidewayMoveGoal::Activate(HolySwordWolfAI* ai) {
+void SidewayMoveGoal::activate(HolySwordWolfAI* ai) {
     currentTime = 0;
     
     Vector2D toTarget = (ai->m_target->getPosition() - ai->m_self->getPosition()).normalized();
@@ -139,7 +140,7 @@ void SidewayMoveGoal::Activate(HolySwordWolfAI* ai) {
     ai->m_self->startMoving(targetPos, 0.8f);
 }
 
-bool SidewayMoveGoal::Update(HolySwordWolfAI* ai, float deltaTime) {
+bool SidewayMoveGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     currentTime += deltaTime;
     if (currentTime >= duration) {
         ai->m_self->stopMoving();
@@ -156,7 +157,7 @@ HolySwordWolfAI::HolySwordWolfAI(Boss* entity, Player* player)
 }
 
 // Main AI Update
-void HolySwordWolfAI::Update(float deltaTime) {
+void HolySwordWolfAI::update(float deltaTime) {
     // Update boss facing direction
     if (m_self->canAct()) {
         m_self->setFacingDirection((m_target->getPosition() - m_self->getPosition()).normalized());
@@ -177,8 +178,8 @@ void HolySwordWolfAI::Update(float deltaTime) {
     
     // Process current goal
     if (m_currentGoal) {
-        if (m_currentGoal->Update(this, deltaTime)) {
-            m_currentGoal->Terminate(this);
+        if (m_currentGoal->update(this, deltaTime)) {
+            m_currentGoal->terminate(this);
             m_currentGoal.reset();
         }
     }
@@ -187,20 +188,20 @@ void HolySwordWolfAI::Update(float deltaTime) {
     if (!m_currentGoal && !m_goalQueue.empty()) {
         m_currentGoal = std::move(m_goalQueue.front());
         m_goalQueue.erase(m_goalQueue.begin());
-        m_currentGoal->Activate(this);
+        m_currentGoal->activate(this);
     }
     
     // Select new action if idle
     if (!m_currentGoal && m_actionCooldown <= 0 && m_self->canAct()) {
-        SelectAction();
+        selectAction();
         m_actionCooldown = 0.5f;
     }
 }
 
-void HolySwordWolfAI::SelectAction() {
-    float targetDist = GetDistanceToTarget();
-    float targetHP = GetTargetHPRate();
-    float selfHP = GetSelfHPRate();
+void HolySwordWolfAI::selectAction() {
+    float targetDist = getDistanceToTarget();
+    float targetHP = getTargetHPRate();
+    float selfHP = getSelfHPRate();
     
     // Action percentages based on distance and state
     int act01Per = 0, act02Per = 0, act03Per = 0, act04Per = 0;
@@ -209,10 +210,11 @@ void HolySwordWolfAI::SelectAction() {
     
     // Enhanced state behavior (similar to special effect 5401)
     if (m_isEnhanced) {
-        if (targetDist <= 2.6f) {
-            if (IsTargetBehind() && IsTargetOnSide(true)) {
+        // 2.6
+        if (targetDist <= ATTACK_CLOSE) {
+            if (isTargetBehind() && isTargetOnSide(true)) {
                 act10Per = 100; // Enhanced spin right
-            } else if (IsTargetBehind() && IsTargetOnSide(false)) {
+            } else if (isTargetBehind() && isTargetOnSide(false)) {
                 act11Per = 100; // Enhanced spin left
             } else {
                 act08Per = 35;  // Enhanced combo
@@ -229,7 +231,7 @@ void HolySwordWolfAI::SelectAction() {
             act02Per = 60;  // Dash attack
             act03Per = 10;  // Spin attack
             act13Per = 20;  // Projectile
-        } else if (targetDist > 10.0f) {
+        } else if (targetDist > (ATTACK_FAR + ATTACK_MID) / 2) {
             act01Per = 20;
             act03Per = 25;
             act04Per = 5;   // Uppercut
@@ -239,10 +241,10 @@ void HolySwordWolfAI::SelectAction() {
             act03Per = 35;
             act04Per = 20;
             act07Per = 5;   // Backstep
-        } else if (targetDist > 1.5f) {
+        } else if (targetDist > ATTACK_CLOSE) {
             // Check for backstep counters
-            if (IsTargetBehind() && GetRandomInt(1, 100) <= 80) {
-                if (IsTargetOnSide(true)) {
+            if (isTargetBehind() && getRandomInt(1, 100) <= 80) {
+                if (isTargetOnSide(true)) {
                     act05Per = 100; // Backstep slash right
                 } else {
                     act06Per = 100; // Backstep slash left
@@ -274,220 +276,221 @@ void HolySwordWolfAI::SelectAction() {
     
     if (totalWeight == 0) return;
     
-    int roll = GetRandomInt(1, totalWeight);
+    int roll = getRandomInt(1, totalWeight);
     int cumulative = 0;
     
     // Execute selected action
     if (roll <= (cumulative += act01Per)) {
         // Action 1: Light combo
-        AddGoal(std::make_unique<MoveToTargetGoal>(ATTACK_MID, targetDist > 10));
-        int comboRoll = GetRandomInt(1, 100);
+        addGoal(std::make_unique<MoveToTargetGoal>(ATTACK_MID, targetDist > 10));
+        int comboRoll = getRandomInt(1, 100);
         if (comboRoll <= 10) {
-            AddGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1));
+            addGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1));
         } else if (comboRoll <= 40) {
-            AddGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1));
-            AddGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_2));
+            addGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1));
+            addGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_2));
         } else {
-            AddGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1));
-            AddGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_2));
-            AddGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_3));
+            addGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1));
+            addGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_2));
+            addGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_3));
         }
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act02Per)) {
         // Action 2: Dash attack
-        AddGoal(std::make_unique<MoveToTargetGoal>(ATTACK_FAR));
-        if (GetRandomInt(1, 100) <= 30) {
-            AddGoal(std::make_unique<AttackGoal>(AttackType::DASH_ATTACK));
+        addGoal(std::make_unique<MoveToTargetGoal>(ATTACK_FAR));
+        if (getRandomInt(1, 100) <= 30) {
+            addGoal(std::make_unique<AttackGoal>(AttackType::DASH_ATTACK));
         } else {
-            AddGoal(std::make_unique<AttackGoal>(AttackType::DASH_ATTACK));
-            AddGoal(std::make_unique<AttackGoal>(AttackType::DASH_FOLLOWUP));
+            addGoal(std::make_unique<AttackGoal>(AttackType::DASH_ATTACK));
+            addGoal(std::make_unique<AttackGoal>(AttackType::DASH_FOLLOWUP));
         }
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act03Per)) {
         // Action 3: Spin attack
-        AddGoal(std::make_unique<MoveToTargetGoal>(4.1f));
-        AddGoal(std::make_unique<AttackGoal>(AttackType::SPIN_ATTACK));
+        addGoal(std::make_unique<MoveToTargetGoal>(4.1f));
+        addGoal(std::make_unique<AttackGoal>(AttackType::SPIN_ATTACK));
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act04Per)) {
         // Action 4: Uppercut
-        AddGoal(std::make_unique<MoveToTargetGoal>(1.5f));
-        AddGoal(std::make_unique<AttackGoal>(AttackType::UPPERCUT));
+        addGoal(std::make_unique<MoveToTargetGoal>(1.5f));
+        addGoal(std::make_unique<AttackGoal>(AttackType::UPPERCUT));
         m_aggressionLevel = std::max(0, m_aggressionLevel - 5);
     } else if (roll <= (cumulative += act05Per)) {
         // Action 5: Backstep slash right
-        AddGoal(std::make_unique<AttackGoal>(AttackType::BACKSTEP_SLASH_R));
+        addGoal(std::make_unique<AttackGoal>(AttackType::BACKSTEP_SLASH_R));
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act06Per)) {
         // Action 6: Backstep slash left
-        AddGoal(std::make_unique<AttackGoal>(AttackType::BACKSTEP_SLASH_L));
+        addGoal(std::make_unique<AttackGoal>(AttackType::BACKSTEP_SLASH_L));
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act07Per)) {
         // Action 7: Backstep
-        AddGoal(std::make_unique<StepGoal>(StepType::BACKSTEP));
+        addGoal(std::make_unique<StepGoal>(StepType::BACKSTEP));
         m_aggressionLevel = std::max(0, m_aggressionLevel - 5);
     } else if (roll <= (cumulative += act08Per)) {
         // Action 8: Enhanced combo (if enhanced)
         if (m_isEnhanced) {
-            AddGoal(std::make_unique<MoveToTargetGoal>(4.2f));
-            if (GetRandomInt(1, 100) <= 45) {
-                AddGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_COMBO_1));
+            addGoal(std::make_unique<MoveToTargetGoal>(4.2f));
+            if (getRandomInt(1, 100) <= 45) {
+                addGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_COMBO_1));
             } else {
-                AddGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_COMBO_1));
-                AddGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_2));
+                addGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_COMBO_1));
+                addGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_2));
             }
         }
         m_aggressionLevel += 20;
     } else if (roll <= (cumulative += act09Per)) {
         // Action 9: Enhanced heavy (if enhanced)
         if (m_isEnhanced) {
-            AddGoal(std::make_unique<MoveToTargetGoal>(3.5f));
-            AddGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_COMBO_2));
+            addGoal(std::make_unique<MoveToTargetGoal>(3.5f));
+            addGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_COMBO_2));
         }
         m_aggressionLevel += 20;
     } else if (roll <= (cumulative += act10Per)) {
         // Action 10: Enhanced spin right
-        AddGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_SPIN_R));
+        addGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_SPIN_R));
         m_aggressionLevel += 20;
     } else if (roll <= (cumulative += act11Per)) {
         // Action 11: Enhanced spin left
-        AddGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_SPIN_L));
+        addGoal(std::make_unique<AttackGoal>(AttackType::ENHANCED_SPIN_L));
         m_aggressionLevel += 20;
     } else if (roll <= (cumulative += act12Per)) {
         // Action 12: Ground slam
-        AddGoal(std::make_unique<MoveToTargetGoal>(2.0f));
-        if (GetRandomInt(1, 100) <= 30) {
-            AddGoal(std::make_unique<AttackGoal>(AttackType::GROUND_SLAM));
+        addGoal(std::make_unique<MoveToTargetGoal>(2.0f));
+        if (getRandomInt(1, 100) <= 30) {
+            addGoal(std::make_unique<AttackGoal>(AttackType::GROUND_SLAM));
         } else {
-            AddGoal(std::make_unique<AttackGoal>(AttackType::GROUND_SLAM));
-            AddGoal(std::make_unique<AttackGoal>(AttackType::GROUND_SLAM_FOLLOWUP));
+            addGoal(std::make_unique<AttackGoal>(AttackType::GROUND_SLAM));
+            addGoal(std::make_unique<AttackGoal>(AttackType::GROUND_SLAM_FOLLOWUP));
         }
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act13Per)) {
         // Action 13: Projectile
-        AddGoal(std::make_unique<MoveToTargetGoal>(12.0f));
-        AddGoal(std::make_unique<AttackGoal>(AttackType::PROJECTILE));
+        addGoal(std::make_unique<MoveToTargetGoal>(12.0f));
+        addGoal(std::make_unique<AttackGoal>(AttackType::PROJECTILE));
         m_aggressionLevel += 10;
     }
     
     // Add after-action behavior
-    int afterRoll = GetRandomInt(1, 100);
+    int afterRoll = getRandomInt(1, 100);
     if (selfHP <= 0.1f && afterRoll > 60) {
         // Low HP defensive behavior
         if (afterRoll <= 80) {
-            AddGoal(std::make_unique<MoveToTargetGoal>(3.6f));
+            addGoal(std::make_unique<MoveToTargetGoal>(3.6f));
         } else {
-            AddGoal(std::make_unique<SidewayMoveGoal>(GetRandomInt(0, 1), 2.5f));
+            addGoal(std::make_unique<SidewayMoveGoal>(getRandomInt(0, 1), 2.5f));
         }
     } else if (afterRoll > 30) {
         // Normal after-action behavior
         if (afterRoll <= 40) {
-            AddGoal(std::make_unique<MoveToTargetGoal>(5.0f));
+            addGoal(std::make_unique<MoveToTargetGoal>(5.0f));
         } else if (afterRoll <= 80) {
-            AddGoal(std::make_unique<StepGoal>(StepType::BACKSTEP));
+            addGoal(std::make_unique<StepGoal>(StepType::BACKSTEP));
         } else {
-            StepType sideStep = (GetRandomInt(1, 100) <= 50) ? 
+            StepType sideStep = (getRandomInt(1, 100) <= 50) ? 
                                 StepType::SIDESTEP_LEFT : StepType::SIDESTEP_RIGHT;
-            AddGoal(std::make_unique<StepGoal>(sideStep));
+            addGoal(std::make_unique<StepGoal>(sideStep));
         }
     }
 }
 
-void HolySwordWolfAI::OnDamaged(float damage, const Vector2D& sourcePos) {
+void HolySwordWolfAI::onDamaged(float damage, const Vector2D& sourcePos) {
     m_lastDamageTime = SDL_GetTicks() / 1000.0f;
     
-    if (!m_isEnhanced && GetDistanceToTarget() < 6.0f) {
+    if (!m_isEnhanced && getDistanceToTarget() < 6.0f) {
         // Interrupt and counterattack
-        ClearGoals();
+        clearGoals();
         
-        float targetDist = GetDistanceToTarget();
+        float targetDist = getDistanceToTarget();
 
-        int roll = GetRandomInt(1, 100);
+        int roll = getRandomInt(1, 100);
         if (targetDist <= 2.0f) {
-            AddGoal(std::make_unique<StepGoal>(StepType::BACKSTEP));
+            addGoal(std::make_unique<StepGoal>(StepType::BACKSTEP));
         } else if (targetDist <= 6.0f && roll <= 50) {
-            AddGoal(std::make_unique<StepGoal>(StepType::BACKSTEP));
+            addGoal(std::make_unique<StepGoal>(StepType::BACKSTEP));
         } else if (roll <= 75) {
-            AddGoal(std::make_unique<StepGoal>(StepType::SIDESTEP_LEFT));
+            addGoal(std::make_unique<StepGoal>(StepType::SIDESTEP_LEFT));
         } else {
-            AddGoal(std::make_unique<StepGoal>(StepType::SIDESTEP_RIGHT));
+            addGoal(std::make_unique<StepGoal>(StepType::SIDESTEP_RIGHT));
         }
     }
 }
 
-void HolySwordWolfAI::OnGuardBroken() {
+void HolySwordWolfAI::onGuardBroken() {
     m_isGuardBroken = true;
     
-    if (GetDistanceToTarget() < 5.8f && GetRandomInt(1, 100) <= 80) {
-        ClearGoals();
-        AddGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1));
+    if (getDistanceToTarget() < 5.8f && getRandomInt(1, 100) <= 80) {
+        clearGoals();
+        addGoal(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1));
     }
 }
 
-void HolySwordWolfAI::OnProjectileDetected(const Vector2D& projectilePos) {
+void HolySwordWolfAI::onProjectileDetected(const Vector2D& projectilePos) {
     if (!m_isEnhanced) {
-        float dist = GetDistanceToTarget();
+        float dist = getDistanceToTarget();
         
-        if ((dist <= 8 && GetRandomInt(1, 100) <= 0) ||    // Near
-            (dist <= 25 && GetRandomInt(1, 100) <= 30)) {   // Far
-            ClearGoals();
-            if (GetRandomInt(1, 100) <= 50) {
-                AddGoal(std::make_unique<StepGoal>(StepType::SIDESTEP_LEFT));
+        if ((dist <= 8 && getRandomInt(1, 100) <= 0) ||    // Near
+            (dist <= 25 && getRandomInt(1, 100) <= 30)) {   // Far
+            clearGoals();
+            if (getRandomInt(1, 100) <= 50) {
+                addGoal(std::make_unique<StepGoal>(StepType::SIDESTEP_LEFT));
             } else {
-                AddGoal(std::make_unique<StepGoal>(StepType::SIDESTEP_RIGHT));
+                addGoal(std::make_unique<StepGoal>(StepType::SIDESTEP_RIGHT));
             }
         }
     }
 }
 
 // Utility function implementations
-void HolySwordWolfAI::ExecuteGoal(std::unique_ptr<AIGoal> goal) {
+void HolySwordWolfAI::executeGoal(std::unique_ptr<AIGoal> goal) {
     if (m_currentGoal) {
         m_goalQueue.push_back(std::move(goal));
     } else {
         m_currentGoal = std::move(goal);
-        m_currentGoal->Activate(this);
+        m_currentGoal->activate(this);
     }
 }
 
-void HolySwordWolfAI::ClearGoals() {
+void HolySwordWolfAI::clearGoals() {
     if (m_currentGoal) {
-        m_currentGoal->Terminate(this);
+        m_currentGoal->terminate(this);
         m_currentGoal.reset();
     }
     m_goalQueue.clear();
 }
 
-void HolySwordWolfAI::AddGoal(std::unique_ptr<AIGoal> goal) {
+void HolySwordWolfAI::addGoal(std::unique_ptr<AIGoal> goal) {
     m_goalQueue.push_back(std::move(goal));
 }
 
-int HolySwordWolfAI::GetRandomInt(int min, int max) {
+int HolySwordWolfAI::getRandomInt(int min, int max) {
     std::uniform_int_distribution<int> dist(min, max);
     return dist(m_rng);
 }
 
-float HolySwordWolfAI::GetRandomFloat(float min, float max) {
+float HolySwordWolfAI::getRandomFloat(float min, float max) {
     std::uniform_real_distribution<float> dist(min, max);
     return dist(m_rng);
 }
 
 // Utility function updates
-float HolySwordWolfAI::GetDistanceToTarget() const {
+float HolySwordWolfAI::getDistanceToTarget() const {
+    std::cout << "Distance: " << m_self->getPosition().distance(m_target->getPosition()) << std::endl;
     return m_self->getPosition().distance(m_target->getPosition());
 }
 
-float HolySwordWolfAI::GetAngleToTarget() const {
+float HolySwordWolfAI::getAngleToTarget() const {
     Vector2D toTarget = m_target->getPosition() - m_self->getPosition();
     return atan2(toTarget.y, toTarget.x);
 }
 
-bool HolySwordWolfAI::IsTargetBehind() const {
-    float angle = GetAngleToTarget();
+bool HolySwordWolfAI::isTargetBehind() const {
+    float angle = getAngleToTarget();
     return std::abs(angle) > 2.44f; // ~140 degrees
 }
 
-bool HolySwordWolfAI::IsTargetOnSide(bool checkRight) const {
-    float angle = GetAngleToTarget();
+bool HolySwordWolfAI::isTargetOnSide(bool checkRight) const {
+    float angle = getAngleToTarget();
     if (checkRight) {
         return angle > 0 && angle < M_PI;
     } else {
@@ -495,10 +498,10 @@ bool HolySwordWolfAI::IsTargetOnSide(bool checkRight) const {
     }
 }
 
-float HolySwordWolfAI::GetTargetHPRate() const {
+float HolySwordWolfAI::getTargetHPRate() const {
     return m_target->getHealthPercentage();
 }
 
-float HolySwordWolfAI::GetSelfHPRate() const {
+float HolySwordWolfAI::getSelfHPRate() const {
     return m_self->getHealthPercentage();
 }

@@ -5,6 +5,8 @@
 #include <cmath>
 #include <algorithm>
 
+extern float bossAttackRange;
+
 // Boss visual/animation states
 enum class BossAnimState {
     IDLE,
