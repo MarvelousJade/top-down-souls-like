@@ -1,4 +1,5 @@
-#pragma  once
+#ifndef GOALS_H
+#define GOALS_H
 
 class HolySwordWolfAI;
 
@@ -36,7 +37,7 @@ public:
     virtual ~AIGoal() = default;
     virtual void activate(class HolySwordWolfAI* ai) = 0;
     virtual bool update(class HolySwordWolfAI* ai, float deltaTime) = 0; // Returns true when complete
-    virtual void terminate(class HolySwordWolfAI* ai) {}
+    virtual void terminate(class HolySwordWolfAI* ai) = 0;
     
     float lifeTime = -1.0f; // -1 means infinite
 };
@@ -54,6 +55,7 @@ public:
     
     void activate(class HolySwordWolfAI* ai) override;
     bool update(class HolySwordWolfAI* ai, float deltaTime) override;
+    void terminate(class HolySwordWolfAI* ai) override;
 };
 
 class MoveToTargetGoal : public AIGoal {
@@ -67,6 +69,7 @@ public:
     
     void activate(class HolySwordWolfAI* ai) override;
     bool update(class HolySwordWolfAI* ai, float deltaTime) override;
+    void terminate(class HolySwordWolfAI* ai) override;
 };
 
 class StepGoal : public AIGoal {
@@ -81,6 +84,7 @@ public:
     
     void activate(class HolySwordWolfAI* ai) override;
     bool update(class HolySwordWolfAI* ai, float deltaTime) override;
+    void terminate(class HolySwordWolfAI* ai) override;
 };
 
 class SidewayMoveGoal : public AIGoal {
@@ -95,4 +99,7 @@ public:
     
     void activate(class HolySwordWolfAI* ai) override;
     bool update(class HolySwordWolfAI* ai, float deltaTime) override;
+    void terminate(class HolySwordWolfAI* ai) override;
 };
+
+#endif

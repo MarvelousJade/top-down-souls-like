@@ -70,14 +70,18 @@ public:
     void startMoving(const Vector2D& targetPos, float speed = 1.0f);
     void stopMoving();
     void performStep(const Vector2D& direction, float distance);
-    
+    void cancelAttack();
+    void forceIdle();
+
     // State queries for AI
     bool isAttacking() const { return m_animState == BossAnimState::ATTACKING; }
     bool isRecovering() const { return m_animState == BossAnimState::RECOVERING; }
+    bool isMoving() const { return m_animState == BossAnimState::MOVING; };
     bool canAct() const { return m_animState == BossAnimState::IDLE || m_animState == BossAnimState::MOVING; }
     float getAttackRange() const { return m_attackRange; }
     float getAttackDamage() const { return m_currentAttackDamage; }
-    
+    float getAnimationProgress() const;
+
     // Combat
     Circle getAttackCircle() const;
     SDL_Rect getSwordHitbox() const;
@@ -88,6 +92,8 @@ public:
     // Getter methods for rendering
     BossAnimState getAnimState() const { return m_animState; }
     BossAttackAnim getCurrentAttackAnim() const { return m_currentAttackAnim; }
+
+
 };
 
 #endif

@@ -67,6 +67,19 @@ bool AttackGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     return false;
 }
 
+void AttackGoal::terminate(HolySwordWolfAI* ai) {
+    // Cancel attack if boss has the method
+    if (ai->m_self->isAttacking() || ai->m_self->isRecovering()) {
+        // Uncomment when cancelAttack is added to Boss:
+        ai->m_self->cancelAttack();
+        
+        // For now, log that we wanted to cancel
+        std::cout << "AttackGoal terminated mid-attack" << std::endl;
+    }
+    
+    currentTime = 0;
+}
+
 void MoveToTargetGoal::activate(HolySwordWolfAI* ai) {
     // Calculate target position based on desired distance
     Vector2D toTarget = ai->m_target->getPosition() - ai->m_self->getPosition();
@@ -104,6 +117,11 @@ bool MoveToTargetGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     return false;
 }
 
+void MoveToTargetGoal::terminate(HolySwordWolfAI* ai) {
+    // Stop any ongoing movement
+    ai->m_self->stopMoving();
+}
+
 void StepGoal::activate(HolySwordWolfAI* ai) {
     currentProgress = 0;
     
@@ -130,6 +148,11 @@ bool StepGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     return currentProgress >= 0.3f; // Quick step
 }
 
+void StepGoal::terminate(HolySwordWolfAI* ai) {
+    // Reset progress
+    currentProgress = 0;
+}
+
 void SidewayMoveGoal::activate(HolySwordWolfAI* ai) {
     currentTime = 0;
     
@@ -147,6 +170,14 @@ bool SidewayMoveGoal::update(HolySwordWolfAI* ai, float deltaTime) {
         return true;
     }
     return false;
+}
+
+void SidewayMoveGoal::terminate(HolySwordWolfAI* ai) {
+    // Stop the sideways movement
+    ai->m_self->stopMoving();
+    
+    // Reset timer
+    currentTime = 0;
 }
 
 HolySwordWolfAI::HolySwordWolfAI(Boss* entity, Player* player)
@@ -451,12 +482,22 @@ void HolySwordWolfAI::executeGoal(std::unique_ptr<AIGoal> goal) {
     }
 }
 
+// Updated clearGoals in HolySwordWolfAI to use forceIdle:
 void HolySwordWolfAI::clearGoals() {
     if (m_currentGoal) {
         m_currentGoal->terminate(this);
         m_currentGoal.reset();
     }
+    
+    // Force boss to idle state when clearing all goals
+    // Uncomment when forceIdle is added:
+    // m_self->forceIdle();
+    
+    // For now, just stop movement
+    m_self->stopMoving();
+    
     m_goalQueue.clear();
+    m_actionCooldown = 0;
 }
 
 void HolySwordWolfAI::addGoal(std::unique_ptr<AIGoal> goal) {

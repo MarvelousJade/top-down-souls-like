@@ -33,7 +33,7 @@ void Boss::update(float deltaTime) {
         Vector2D toTarget = m_targetMovePosition - m_position;
         float distance = toTarget.length();
         
-        if (distance > 120.0f) {
+        if (distance > 5.0f) {
             Vector2D movement = toTarget.normalized() * m_moveSpeed * deltaTime;
             m_position = m_position + movement;
             
@@ -277,6 +277,29 @@ void Boss::performStep(const Vector2D& direction, float distance) {
     m_position = newPos;
 }
 
+// Cancel an ongoing attack (add to Boss.cpp)
+void Boss::cancelAttack() {
+    if (m_animState == BossAnimState::ATTACKING || 
+        m_animState == BossAnimState::RECOVERING) {
+        m_animState = BossAnimState::IDLE;
+        m_animTimer = 0;
+        m_animDuration = 0;
+        m_hasDealtDamage = false;
+        
+        // Reset sword to idle position
+        m_swordAngle = m_swordOnRightSide ? 0.0f : M_PI;
+    }
+}
+
+// Force return to idle state
+void Boss::forceIdle() {
+    m_animState = BossAnimState::IDLE;
+    m_animTimer = 0;
+    m_animDuration = 0;
+    m_hasDealtDamage = false;
+    m_swordAngle = m_swordOnRightSide ? 0.0f : M_PI;
+}
+
 void Boss::takeDamage(float damage) {
     Entity::takeDamage(damage);
     
@@ -290,6 +313,13 @@ void Boss::takeDamage(float damage) {
 void Boss::updateSwordPosition() {
     Vector2D swordBase = m_position + m_facingDirection * 30;
     m_swordTipPosition = swordBase + Vector2D(cos(m_swordAngle), sin(m_swordAngle)) * m_swordLength;
+}
+
+float Boss::getAnimationProgress() const {
+    if (m_animDuration > 0) {
+        return 1.0f - (m_animTimer / m_animDuration);
+    }
+    return 1.0f;
 }
 
 Circle Boss::getAttackCircle() const {

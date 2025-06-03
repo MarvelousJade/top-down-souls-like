@@ -34,7 +34,7 @@ class HolySwordWolfAI {
     
     // Distance thresholds
     const float ATTACK_CLOSE = 80.0f;
-    const float ATTACK_MID = 120.0f;
+    const float ATTACK_MID = bossAttackRange;
     const float ATTACK_FAR = 300.0f;
     
 public:
