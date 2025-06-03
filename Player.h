@@ -2,6 +2,7 @@
 #define PLAYER_H
 
 #include "Entity.h"
+#include "GameUnits.h"
 
 enum class PlayerState {
     IDLE,
@@ -56,7 +57,10 @@ public:
     void move(const Vector2D& direction);
     void attack();
     void dodge(const Vector2D& direction);
-    void setWindowBounds(float width, float height) { m_windowWidth = width; m_windowHeight = height; }
+    void setWindowBounds(float width, float height) { 
+        m_windowWidth = GameUnits::toMeters(width); 
+        m_windowHeight = GameUnits::toMeters(height); 
+    }
     
     bool canAttack() const;
     bool canDodge() const;

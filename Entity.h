@@ -39,7 +39,7 @@ public:
     float getWidth() const { return m_width; }
     float getHeight() const { return m_height; }
     
-    void setPosition(Vector2D newPosition);
+    void setPosition(Vector2D& newPosition) { m_position = newPosition; };
 };
 
 #endif

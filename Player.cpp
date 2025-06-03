@@ -1,5 +1,5 @@
-// === Player.cpp ===
 #include "Player.h"
+#include "GameUnits.h"
 #include <cmath>
 #include <algorithm>
 
@@ -8,26 +8,26 @@
 #endif
 
 Player::Player(float x, float y)
-    : Entity(x, y, 30, 30, 100),  // <-- Change this 100 to modify player health
+    : Entity(x, y, 30, 50, 100),  // <-- Change this 100 to modify player health
       m_state(PlayerState::IDLE),
-      m_speed(300.0f),  // Reduced from 200
+      m_speed(10.0f),
       m_maxStamina(100.0f),
       m_currentStamina(100.0f),
       m_staminaRegenRate(20.0f),
       m_attackCooldown(0.0f),
       m_attackDamage(20.0f),
-      m_attackRange(70.0f),
+      m_attackRange(2.0f),
       m_hasDealtDamage(false),
       m_swordAngle(0.0f),
-      m_swordLength(60.0f),
+      m_swordLength(1.5f),
       m_facingDirection(0, -1),  
       m_dodgeCooldown(0.0f),
       m_dodgeDuration(0.3f),
-      m_dodgeSpeed(300.0f),  // Reduced from 400
+      m_dodgeSpeed(12.0f),
       m_stateTimer(0.0f),
       m_animationTimer(0.0f),
-      m_windowWidth(800.0f),
-      m_windowHeight(600.0f) {
+      m_windowWidth(GameUnits::toMeters(800.0f)),
+      m_windowHeight(GameUnits::toMeters(600.0f)) {
     updateSwordPosition();
 }
 
@@ -115,6 +115,7 @@ void Player::render(SDL_Renderer* renderer) {
             break;
     }
     
+    Vector2D pixelPos = GameUnits::toPixels(m_position);
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_Rect rect = getCollisionBox();
     SDL_RenderFillRect(renderer, &rect);
@@ -123,27 +124,30 @@ void Player::render(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Silver sword
     
     // Calculate sword base position (held by the player)
-    Vector2D swordBase = m_position + m_facingDirection * 15;
+    Vector2D swordBase = m_position + m_facingDirection * GameUnits::toMeters(15);
     
     // Calculate sword tip based on angle
     float totalAngle = atan2(m_facingDirection.y, m_facingDirection.x) + m_swordAngle;
     Vector2D swordEnd = swordBase + Vector2D(cos(totalAngle), sin(totalAngle)) * m_swordLength;
-    
+
+    Vector2D pixelBase = GameUnits::toPixels(swordBase);
+    Vector2D pixelEnd = GameUnits::toPixels(swordEnd);
+
     // Draw sword as a thick line
     for (int i = -2; i <= 2; i++) {
         SDL_RenderDrawLine(renderer, 
-            swordBase.x + i, swordBase.y,
-            swordEnd.x + i, swordEnd.y);
+            pixelBase.x + i, pixelBase.y,
+            pixelEnd.x + i, pixelEnd.y);
         SDL_RenderDrawLine(renderer, 
-            swordBase.x, swordBase.y + i,
-            swordEnd.x, swordEnd.y + i);
+            pixelBase .x, pixelBase.y + i,
+            pixelEnd.x, pixelEnd.y + i);
     }
     
     // Draw sword hilt
     SDL_SetRenderDrawColor(renderer, 100, 100, 150, 255); // Blue hilt
     SDL_Rect hiltRect = {
-        (int)swordBase.x - 4,
-        (int)swordBase.y - 4,
+        (int)pixelBase.x - 4,
+        (int)pixelBase.y - 4,
         8, 8
     };
     SDL_RenderFillRect(renderer, &hiltRect);
@@ -153,8 +157,8 @@ void Player::render(SDL_Renderer* renderer) {
     Vector2D eyeOffset = m_facingDirection * 8;
     Vector2D eyeRight(-m_facingDirection.y, m_facingDirection.x);
     
-    Vector2D eye1 = m_position + eyeOffset + eyeRight * 5;
-    Vector2D eye2 = m_position + eyeOffset - eyeRight * 5;
+    Vector2D eye1 = pixelPos + eyeOffset + eyeRight * 5;
+    Vector2D eye2 = pixelPos + eyeOffset - eyeRight * 5;
     
     SDL_Rect eyeRect1 = {(int)eye1.x - 2, (int)eye1.y - 2, 3, 3};
     SDL_Rect eyeRect2 = {(int)eye2.x - 2, (int)eye2.y - 2, 3, 3};
@@ -213,15 +217,18 @@ bool Player::isInvulnerable() const {
 
 void Player::updateSwordPosition() {
     float angle = atan2(m_facingDirection.y, m_facingDirection.x) + m_swordAngle;
-    Vector2D swordBase = m_position + m_facingDirection * 15;
+    Vector2D swordBase = m_position + m_facingDirection * GameUnits::toMeters(15);
     m_swordTipPosition = swordBase + Vector2D(cos(angle), sin(angle)) * m_swordLength;
 }
 
 SDL_Rect Player::getSwordHitbox() const {
     // Create a rectangle along the sword's length
-    int x = std::min(m_position.x, m_swordTipPosition.x) - 10;
-    int y = std::min(m_position.y, m_swordTipPosition.y) - 10;
-    int w = std::abs(m_swordTipPosition.x - m_position.x) + 20;
-    int h = std::abs(m_swordTipPosition.y - m_position.y) + 20;
-    return SDL_Rect{x, y, w, h};
-}
+    Vector2D pixelPos = GameUnits::toPixels(m_position);
+    Vector2D pixelSwordTip = GameUnits::toPixels(m_swordTipPosition);
+
+    int x = (int)(std::min(pixelPos.x, pixelSwordTip.x) - 10);
+    int y = (int)(std::min(pixelPos.y, pixelSwordTip.y) - 10);
+    int w = (int)(std::abs(pixelSwordTip.x - pixelPos.x) + 20);
+    int h = (int)(std::abs(pixelSwordTip.y - pixelPos.y) + 20);
+
+    return SDL_Rect{x, y, w, h};}

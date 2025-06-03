@@ -33,9 +33,9 @@ class HolySwordWolfAI {
     int m_aggressionLevel = 0; // Tracks from script's ai:GetNumber(0)
     
     // Distance thresholds
-    const float ATTACK_CLOSE = 80.0f;
-    const float ATTACK_MID = bossAttackRange;
-    const float ATTACK_FAR = 300.0f;
+    const float ATTACK_CLOSE = 2.6f;
+    const float ATTACK_MID = 5.2f;
+    const float ATTACK_FAR = 13.5f;
     
 public:
     HolySwordWolfAI(Boss* entity, Player* player);

@@ -1,8 +1,10 @@
-// === Entity.cpp ===
 #include "Entity.h"
+#include "GameUnits.h"
 
 Entity::Entity(float x, float y, float w, float h, float health)
-    : m_position(x, y), m_velocity(0, 0), m_width(w), m_height(h),
+    : m_position(GameUnits::toMeters(x), GameUnits::toMeters(y)),
+      m_width(GameUnits::toMeters(w)), 
+      m_height(GameUnits::toMeters(h)),
       m_maxHealth(health), m_currentHealth(health), m_alive(true) {}
 
 void Entity::takeDamage(float damage) {
@@ -14,17 +16,15 @@ void Entity::takeDamage(float damage) {
 }
 
 SDL_Rect Entity::getCollisionBox() const {
+    Vector2D pixelPos = GameUnits::toPixels(m_position);
     return SDL_Rect{
-        static_cast<int>(m_position.x - m_width / 2),
-        static_cast<int>(m_position.y - m_height / 2),
-        static_cast<int>(m_width),
-        static_cast<int>(m_height)
+        (int)(pixelPos.x - GameUnits::toPixels(m_width) / 2),
+        (int)(pixelPos.y - GameUnits::toPixels(m_height) / 2),
+        (int)GameUnits::toPixels(m_width),
+        (int)GameUnits::toPixels(m_height)
     };
 }
 
-void Entity::setPosition(Vector2D newPosition) {
-    m_position = newPosition;
-}
 
 
 

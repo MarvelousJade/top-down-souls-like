@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "GameUnits.h"
 #include "Player.h"
 #include "Boss.h"
 #include "Sif.h"
@@ -170,10 +171,10 @@ void Game::update(float deltaTime) {
         separateEntities(newPlayerPos, newBossPos, playerRadius, bossRadius);
         
         // Update positions after separation - but keep them in bounds
-        newPlayerPos.x = std::max(playerRadius, std::min(800.0f - playerRadius, newPlayerPos.x));
-        newPlayerPos.y = std::max(playerRadius, std::min(600.0f - playerRadius, newPlayerPos.y));
-        newBossPos.x = std::max(bossRadius, std::min(800.0f - bossRadius, newBossPos.x));
-        newBossPos.y = std::max(bossRadius, std::min(600.0f - bossRadius, newBossPos.y));
+        newPlayerPos.x = std::max(playerRadius, std::min(GameUnits::toMeters(800.0f) - playerRadius, newPlayerPos.x));
+        newPlayerPos.y = std::max(playerRadius, std::min(GameUnits::toMeters(600.0f) - playerRadius, newPlayerPos.y));
+        newBossPos.x = std::max(bossRadius, std::min(GameUnits::toMeters(800.0f) - bossRadius, newBossPos.x));
+        newBossPos.y = std::max(bossRadius, std::min(GameUnits::toMeters(600.0f)  - bossRadius, newBossPos.y));
         
         // Apply the separated positions
         m_player->setPosition(newPlayerPos);

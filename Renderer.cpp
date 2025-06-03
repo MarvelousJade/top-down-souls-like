@@ -102,32 +102,45 @@ void Renderer::drawCircle(int centerX, int centerY, int radius, SDL_Color color)
 void Renderer::drawDebugInfo(const Player* player, const Boss* boss) {
     if (!m_debugMode) return;
 
-    // Draw collision boxes
+    // Draw collision boxes (already in pixels)
     SDL_SetRenderDrawColor(m_renderer, 255, 255, 0, 255);  // Yellow for collision boxes
     SDL_Rect playerBox = player->getCollisionBox();
     SDL_Rect bossBox = boss->getCollisionBox();
     SDL_RenderDrawRect(m_renderer, &playerBox);
     SDL_RenderDrawRect(m_renderer, &bossBox);
 
-    // Draw attack ranges as circles (outline only)
+    // Draw player attack range (convert meters to pixels)
     SDL_SetRenderDrawColor(m_renderer, 255, 255, 0, 100);  // Yellow for player attack range
-    drawCircle(player->getPosition().x, player->getPosition().y, player->getAttackRange(), {255, 255, 0, 100});
+    Vector2D playerPosPixels = GameUnits::toPixels(player->getPosition());
+    int playerX = static_cast<int>(playerPosPixels.x);
+    int playerY = static_cast<int>(playerPosPixels.y);
+    int playerAttackRangePixels = static_cast<int>(GameUnits::toPixels(player->getAttackRange()));
+    drawCircle(playerX, playerY, playerAttackRangePixels, {255, 255, 0, 100});
 
+    // Draw boss attack range (convert meters to pixels)
     SDL_SetRenderDrawColor(m_renderer, 255, 0, 0, 100);  // Red for boss attack range
-    drawCircle(boss->getPosition().x, boss->getPosition().y, boss->getAttackRange(), {255, 0, 0, 100});
+    Vector2D bossPosPixels = GameUnits::toPixels(boss->getPosition());
+    int bossX = static_cast<int>(bossPosPixels.x);
+    int bossY = static_cast<int>(bossPosPixels.y);
+    int bossAttackRangePixels = static_cast<int>(GameUnits::toPixels(boss->getAttackRange()));
+    drawCircle(bossX, bossY, bossAttackRangePixels, {255, 0, 0, 100});
 
-    // Draw boss attack hitbox when attacking
+    // Draw boss attack hitbox when attacking (convert meters to pixels)
     if (boss->isAttacking()) {
         SDL_SetRenderDrawColor(m_renderer, 255, 0, 255, 255);  // Magenta for active attack
         Circle attackCircle = boss->getAttackCircle();
-        drawCircle(attackCircle.x, attackCircle.y, attackCircle.r, {255, 0, 255, 255});
+        Vector2D attackCenterPixels = GameUnits::toPixels(Vector2D(attackCircle.x, attackCircle.y));
+        int attackX = static_cast<int>(attackCenterPixels.x);
+        int attackY = static_cast<int>(attackCenterPixels.y);
+        int attackRadiusPixels = static_cast<int>(GameUnits::toPixels(attackCircle.r));
+        drawCircle(attackX, attackY, attackRadiusPixels, {255, 0, 255, 255});
         
         SDL_SetRenderDrawColor(m_renderer, 200, 200, 255, 255);  // Light blue for sword
         SDL_Rect swordBox = boss->getSwordHitbox();
         SDL_RenderDrawRect(m_renderer, &swordBox);
     }
 
-    // Draw boss state indicator
+    // Draw boss state indicator (convert position to pixels, keep offsets in pixels)
     BossAnimState animState = boss->getAnimState();
     SDL_Color stateColor;
     switch (animState) {
@@ -139,10 +152,9 @@ void Renderer::drawDebugInfo(const Player* player, const Boss* boss) {
         case BossAnimState::DYING: stateColor = {0, 0, 0, 255}; break;         // Black
         default: stateColor = {255, 255, 255, 255}; break;                     // White
     }
-    Vector2D bossPos = boss->getPosition();
-    drawCircle(bossPos.x, bossPos.y - 40, 5, stateColor);
+    drawCircle(bossX, bossY - 40, 5, stateColor);
 
-    // Draw attack type indicator when attacking
+    // Draw attack type indicator when attacking (convert position to pixels, keep offsets in pixels)
     if (animState == BossAnimState::ATTACKING) {
         BossAttackAnim attackAnim = boss->getCurrentAttackAnim();
         SDL_Color attackColor;
@@ -157,10 +169,10 @@ void Renderer::drawDebugInfo(const Player* player, const Boss* boss) {
             case BossAttackAnim::BACKSTEP_SLASH: attackColor = {0, 128, 128, 255}; break;    // Teal
             default: attackColor = {255, 255, 255, 255}; break;                              // White
         }
-        drawCircle(bossPos.x + 10, bossPos.y - 40, 5, attackColor);
+        drawCircle(bossX + 10, bossY - 40, 5, attackColor);
     }
 
-    // Draw player attack hitbox if attacking
+    // Draw player attack hitbox if attacking (already in pixels)
     if (player->isAttacking()) {
         SDL_SetRenderDrawColor(m_renderer, 0, 255, 255, 255);  // Cyan
         SDL_Rect playerSwordBox = player->getSwordHitbox();

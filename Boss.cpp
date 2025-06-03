@@ -1,26 +1,29 @@
 #include "Boss.h"
+#include "GameUnits.h"
+#include "Vector2D.h"
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-float bossAttackRange = 120.0f;
+float bossAttackRange = 4.0f;
 
 Boss::Boss(float x, float y)
-    : Entity(x, y, 80, 60, 300),
+    : Entity(x, y, 60, 120, 300),
       m_animState(BossAnimState::IDLE),
       m_currentAttackAnim(BossAttackAnim::HORIZONTAL_SWING),
       m_animTimer(0.0f),
       m_animDuration(0.0f),
       m_facingDirection(0, 1),
       m_swordAngle(0.0f),
-      m_swordLength(100.0f),
+      m_swordLength(3.0f),
       m_swordOnRightSide(true),
       m_baseAttackDamage(25.0f),
       m_currentAttackDamage(25.0f),
       m_attackRange(bossAttackRange),
       m_hasDealtDamage(false),
-      m_moveSpeed(310.0f) {
+      m_moveSpeed(10.0f) {
     updateSwordPosition();
 }
 
@@ -38,8 +41,15 @@ void Boss::update(float deltaTime) {
             m_position = m_position + movement;
             
             // Keep in bounds
-            m_position.x = std::max(80.0f, std::min(720.0f, m_position.x));
-            m_position.y = std::max(80.0f, std::min(520.0f, m_position.y));
+            float minX = GameUnits::toMeters(60.0f);  // 2.67 meters
+            float maxX = GameUnits::toMeters(740.0f); // 24 meters
+            float minY = GameUnits::toMeters(120.0f);  // 2.67 meters
+            float maxY = GameUnits::toMeters(480.0f); // 17.33 meters
+            float halfWidth = m_width / 2;  // 2 meters
+            float halfHeight = m_height / 2; // 4 meters
+            
+            m_position.x = (std::max(minX, std::min(maxX, m_position.x)));
+            m_position.y = (std::max(minY, std::min(maxY, m_position.y)));
         } else {
             // Reached target
             m_animState = BossAnimState::IDLE;
@@ -165,36 +175,40 @@ void Boss::render(SDL_Renderer* renderer) {
     // Draw sword
     SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
     
-    Vector2D swordBase = m_position + m_facingDirection * 30;
+    Vector2D swordBase = m_position + m_facingDirection * GameUnits::toMeters(30);
     Vector2D swordEnd = swordBase + Vector2D(cos(m_swordAngle), sin(m_swordAngle)) * m_swordLength;
     
+    Vector2D pixelBase = GameUnits::toPixels(swordBase);
+    Vector2D pixelEnd = GameUnits::toPixels(swordEnd);
+
     // Draw sword as thick line
     for (int i = -2; i <= 2; i++) {
         SDL_RenderDrawLine(renderer, 
-            swordBase.x + i, swordBase.y,
-            swordEnd.x + i, swordEnd.y);
+            pixelBase.x + i, pixelBase.y,
+            pixelEnd.x + i, pixelEnd.y);
         SDL_RenderDrawLine(renderer, 
-            swordBase.x, swordBase.y + i,
-            swordEnd.x, swordEnd.y + i);
+            pixelBase.x, pixelBase.y + i,
+            pixelEnd.x, pixelEnd.y + i);
     }
     
     // Draw sword hilt
     SDL_SetRenderDrawColor(renderer, 150, 100, 50, 255);
     SDL_Rect hiltRect = {
-        (int)swordBase.x - 5,
-        (int)swordBase.y - 5,
+        (int)pixelBase.x - 5,
+        (int)pixelBase.y - 5,
         10, 10
     };
     SDL_RenderFillRect(renderer, &hiltRect);
     
     // Draw eyes
+    Vector2D pixelPos = GameUnits::toPixels(m_position);
     SDL_SetRenderDrawColor(renderer, isInjured ? 100 : 255, 50, 50, 255);
     Vector2D eyeOffset(-10, -10);
-    Vector2D eyePos = m_position + eyeOffset;
+    Vector2D eyePos = pixelPos + eyeOffset;
     SDL_Rect eyeRect = {(int)eyePos.x - 2, (int)eyePos.y - 2, 4, 4};
     SDL_RenderFillRect(renderer, &eyeRect);
     eyeOffset.x = 10;
-    eyePos = m_position + eyeOffset;
+    eyePos = pixelPos + eyeOffset;
     eyeRect = {(int)eyePos.x - 2, (int)eyePos.y - 2, 4, 4};
     SDL_RenderFillRect(renderer, &eyeRect);
 }
@@ -255,7 +269,7 @@ void Boss::startMoving(const Vector2D& targetPos, float speed) {
     
     m_animState = BossAnimState::MOVING;
     m_targetMovePosition = targetPos;
-    m_moveSpeed = 310.0f * speed;
+    m_moveSpeed = m_moveSpeed * speed;
     m_facingDirection = (targetPos - m_position).normalized();
 }
 
@@ -311,7 +325,7 @@ void Boss::takeDamage(float damage) {
 }
 
 void Boss::updateSwordPosition() {
-    Vector2D swordBase = m_position + m_facingDirection * 30;
+    Vector2D swordBase = m_position + m_facingDirection * GameUnits::toMeters(30);
     m_swordTipPosition = swordBase + Vector2D(cos(m_swordAngle), sin(m_swordAngle)) * m_swordLength;
 }
 
@@ -330,9 +344,12 @@ Circle Boss::getAttackCircle() const {
 }
 
 SDL_Rect Boss::getSwordHitbox() const {
-    int x = std::min(m_position.x, m_swordTipPosition.x) - 10;
-    int y = std::min(m_position.y, m_swordTipPosition.y) - 10;
-    int w = std::abs(m_swordTipPosition.x - m_position.x) + 20;
-    int h = std::abs(m_swordTipPosition.y - m_position.y) + 20;
+    Vector2D pixelPos = GameUnits::toPixels(m_position);
+    Vector2D pixelSwordTip = GameUnits::toPixels(m_swordTipPosition);
+
+    int x = std::min(pixelPos.x, pixelSwordTip.x) - 10;
+    int y = std::min(pixelPos.y, pixelSwordTip.y) - 10;
+    int w = std::abs(pixelSwordTip.x - pixelPos.x) + 20;
+    int h = std::abs(pixelSwordTip.y - pixelPos.y) + 20;
     return SDL_Rect{x, y, w, h};
 }
