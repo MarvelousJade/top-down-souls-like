@@ -2,6 +2,7 @@
 #include "GameUnits.h"
 #include "Vector2D.h"
 #include <algorithm>
+#include <iostream>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -45,8 +46,8 @@ void Boss::update(float deltaTime) {
             float maxX = GameUnits::toMeters(740.0f); // 24 meters
             float minY = GameUnits::toMeters(120.0f);  // 2.67 meters
             float maxY = GameUnits::toMeters(480.0f); // 17.33 meters
-            float halfWidth = m_width / 2;  // 2 meters
-            float halfHeight = m_height / 2; // 4 meters
+            // float halfWidth = m_width / 2;  // 2 meters
+            // float halfHeight = m_height / 2; // 4 meters
             
             m_position.x = (std::max(minX, std::min(maxX, m_position.x)));
             m_position.y = (std::max(minY, std::min(maxY, m_position.y)));
@@ -282,12 +283,17 @@ void Boss::stopMoving() {
 void Boss::performStep(const Vector2D& direction, float distance) {
     if (!canAct()) return;
     
+    std::cout << "Step Distance: " << distance << std::endl;
     Vector2D newPos = m_position + direction.normalized() * distance;
     
     // Keep in bounds
-    newPos.x = std::max(80.0f, std::min(720.0f, newPos.x));
-    newPos.y = std::max(80.0f, std::min(520.0f, newPos.y));
-    
+    float minX = GameUnits::toMeters(60.0f);  // 2.67 meters
+    float maxX = GameUnits::toMeters(740.0f); // 24 meters
+    float minY = GameUnits::toMeters(120.0f);  // 2.67 meters
+    float maxY = GameUnits::toMeters(480.0f); // 17.33 meters
+    newPos.x = std::max(minX, std::min(maxX, newPos.x));
+    newPos.y = std::max(minY, std::min(maxY, newPos.y));
+
     m_position = newPos;
 }
 

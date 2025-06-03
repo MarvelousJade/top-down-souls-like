@@ -103,7 +103,7 @@ void MoveToTargetGoal::activate(HolySwordWolfAI* ai) {
 bool MoveToTargetGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     float currentDist = ai->getDistanceToTarget();
     
-    if (std::abs(currentDist - targetDistance) < 15.0f) {
+    if (std::abs(currentDist - targetDistance) < 1.0f) {
         ai->m_self->stopMoving();
         return true;
     }
@@ -140,7 +140,7 @@ void StepGoal::activate(HolySwordWolfAI* ai) {
             break;
     }
     
-    ai->m_self->performStep(stepDir, stepDistance * 20.0f); // Scale up distance
+    ai->m_self->performStep(stepDir, stepDistance * 2.0f); // Scale up distance
 }
 
 bool StepGoal::update(HolySwordWolfAI* ai, float deltaTime) {
@@ -516,8 +516,9 @@ float HolySwordWolfAI::getRandomFloat(float min, float max) {
 
 // Utility function updates
 float HolySwordWolfAI::getDistanceToTarget() const {
-    std::cout << "Distance: " << m_self->getPosition().distance(m_target->getPosition()) << std::endl;
-    return m_self->getPosition().distance(m_target->getPosition());
+    float distance =  m_self->getPosition().distance(m_target->getPosition());
+    std::cout << "Distance: " << distance << std::endl;
+    return distance;
 }
 
 float HolySwordWolfAI::getAngleToTarget() const {
