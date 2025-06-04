@@ -162,23 +162,52 @@ void Game::update(float deltaTime) {
     SDL_Rect bossBox = m_boss->getCollisionBox();
     
     if (checkCollision(playerBox, bossBox)) {
-        // Push them apart based on their sizes
-        float playerRadius = (m_player->getWidth() + m_player->getHeight()) / 4.0f;
-        float bossRadius = (m_boss->getWidth() + m_boss->getHeight()) / 4.0f;
+        Vector2D playerPos = m_player->getPosition();
+        Vector2D bossPos = m_boss->getPosition();
         
-        Vector2D newPlayerPos = m_player->getPosition();
-        Vector2D newBossPos = m_boss->getPosition();
-        separateEntities(newPlayerPos, newBossPos, playerRadius, bossRadius);
+        // Calculate half dimensions
+        float playerHalfW = m_player->getWidth() / 2.0f;
+        float playerHalfH = m_player->getHeight() / 2.0f;
+        float bossHalfW = m_boss->getWidth() / 2.0f;
+        float bossHalfH = m_boss->getHeight() / 2.0f;
         
-        // Update positions after separation - but keep them in bounds
-        newPlayerPos.x = std::max(playerRadius, std::min(GameUnits::toMeters(800.0f) - playerRadius, newPlayerPos.x));
-        newPlayerPos.y = std::max(playerRadius, std::min(GameUnits::toMeters(600.0f) - playerRadius, newPlayerPos.y));
-        newBossPos.x = std::max(bossRadius, std::min(GameUnits::toMeters(800.0f) - bossRadius, newBossPos.x));
-        newBossPos.y = std::max(bossRadius, std::min(GameUnits::toMeters(600.0f)  - bossRadius, newBossPos.y));
+        // Calculate the distance between centers
+        float dx = playerPos.x - bossPos.x;
+        float dy = playerPos.y - bossPos.y;
         
-        // Apply the separated positions
+        // Calculate overlap on each axis
+        float overlapX = (playerHalfW + bossHalfW) - std::abs(dx);
+        float overlapY = (playerHalfH + bossHalfH) - std::abs(dy);
+        
+        Vector2D newPlayerPos = playerPos;
+        
+        // Push along the axis with smallest overlap
+        if (overlapX < overlapY) {
+            // Push horizontally
+            if (dx > 0) {
+                // Player is to the right of boss, push right
+                newPlayerPos.x += overlapX;
+            } else {
+                // Player is to the left of boss, push left
+                newPlayerPos.x -= overlapX;
+            }
+        } else {
+            // Push vertically
+            if (dy > 0) {
+                // Player is below boss, push down
+                newPlayerPos.y += overlapY;
+            } else {
+                // Player is above boss, push up
+                newPlayerPos.y -= overlapY;
+            }
+        }
+        
+        // Keep player in bounds
+        newPlayerPos.x = std::max(playerHalfW, std::min(GameUnits::toMeters(800.0f) - playerHalfW, newPlayerPos.x));
+        newPlayerPos.y = std::max(playerHalfH, std::min(GameUnits::toMeters(600.0f) - playerHalfH, newPlayerPos.y));
+        
+        // Only update player position
         m_player->setPosition(newPlayerPos);
-        m_boss->setPosition(newBossPos);
     }
 
     // Check sword collisions
