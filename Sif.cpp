@@ -85,7 +85,7 @@ void MoveToTargetGoal::activate(HolySwordWolfAI* ai) {
     Vector2D toTarget = ai->m_target->getPosition() - ai->m_self->getPosition();
     float currentDist = toTarget.length();
     
-    if (std::abs(currentDist - targetDistance) > 10.0f) {
+    if (std::abs(currentDist - targetDistance) > 0.0f) {
         Vector2D targetPos;
         if (currentDist > targetDistance) {
             // Move closer
@@ -95,15 +95,15 @@ void MoveToTargetGoal::activate(HolySwordWolfAI* ai) {
             targetPos = ai->m_self->getPosition() - toTarget.normalized() * (targetDistance - currentDist);
         }
         
-        float speed = walk ? 0.5f : 1.0f;
-        ai->m_self->startMoving(targetPos, speed);
+        float speedMultiplier = walk ? 0.5f : 1.0f;
+        ai->m_self->startMoving(targetPos, speedMultiplier);
     }
 }
 
 bool MoveToTargetGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     float currentDist = ai->getDistanceToTarget();
     
-    if (std::abs(currentDist - targetDistance) < 1.0f) {
+    if (std::abs(currentDist - targetDistance) < 3.0f) {
         ai->m_self->stopMoving();
         return true;
     }
@@ -183,9 +183,7 @@ void SidewayMoveGoal::terminate(HolySwordWolfAI* ai) {
 HolySwordWolfAI::HolySwordWolfAI(Boss* entity, Player* player)
     : m_self(entity), m_target(player), m_rng(std::random_device{}()),
       m_isEnhanced(false), m_enhancedTimer(0), m_lastDamageTime(0),
-      m_isGuardBroken(false), m_actionCooldown(0), m_aggressionLevel(0) {
-    // Additional initialization can be added here if needed
-}
+      m_isGuardBroken(false), m_actionCooldown(0), m_aggressionLevel(0) {}
 
 // Main AI Update
 void HolySwordWolfAI::update(float deltaTime) {
@@ -235,14 +233,16 @@ void HolySwordWolfAI::selectAction() {
     float selfHP = getSelfHPRate();
     
     // Action percentages based on distance and state
+    // 1-light combo, 2-dash attack, 3-spin attack, 4-Uppercut, 
+    // 5-backstep slash right, 6-backstep slash left, 7-backstep,
+    // 8-11 enhanced, 12-ground slam, 14-sideway move
     int act01Per = 0, act02Per = 0, act03Per = 0, act04Per = 0;
     int act05Per = 0, act06Per = 0, act07Per = 0, act08Per = 0;
-    int act09Per = 0, act10Per = 0, act11Per = 0, act12Per = 0, act13Per = 0;
+    int act09Per = 0, act10Per = 0, act11Per = 0, act12Per = 0, act13Per = 0, act14Per = 0;
     
     // Enhanced state behavior (similar to special effect 5401)
     if (m_isEnhanced) {
-        // 2.6
-        if (targetDist <= ATTACK_CLOSE) {
+        if (targetDist <= ATTACK_CLOSE) { // <=6
             if (isTargetBehind() && isTargetOnSide(true)) {
                 act10Per = 100; // Enhanced spin right
             } else if (isTargetBehind() && isTargetOnSide(false)) {
@@ -257,41 +257,36 @@ void HolySwordWolfAI::selectAction() {
         }
     } else {
         // Normal state behavior
-        if (targetDist > ATTACK_FAR) { // > 13.5
-            act01Per = 10;  // Light combo
-            act02Per = 60;  // Dash attack
-            act03Per = 10;  // Spin attack
-            act13Per = 20;  // Projectile
-        } else if (targetDist > (ATTACK_FAR + ATTACK_MID) / 2) {
-            act01Per = 20;
-            act03Per = 25;
-            act04Per = 5;   // Uppercut
-            act13Per = 50;
-        } else if (targetDist > ATTACK_MID) { // > 5.2
-            act01Per = 40;
-            act03Per = 35;
-            act04Per = 20;
+        if (targetDist > ATTACK_FAR) { // > 12
+            act02Per = 70;  // Dash attack
+            act14Per = 30;  // Projectile
+        } else if (targetDist > (ATTACK_MID) / 2) { // > 8
+            act02Per = 70;  // Dash attack
+            act14Per = 30;
+        } else if (targetDist > ATTACK_CLOSE) { // > 6
+            act02Per = 95;  // Dash attack
+            // act13Per = 30;  // Projectile
             act07Per = 5;   // Backstep
-        } else if (targetDist > ATTACK_CLOSE) {
-            // Check for backstep counters
-            if (isTargetBehind() && getRandomInt(1, 100) <= 80) {
-                if (isTargetOnSide(true)) {
-                    act05Per = 100; // Backstep slash right
-                } else {
-                    act06Per = 100; // Backstep slash left
-                }
-            } else {
+        } else if (targetDist > ATTACK_VERY_CLOSE) { // > 4
+            //
                 act01Per = 35;
                 act03Per = 35;
                 act04Per = 5;
                 act07Per = 25;
-            }
+            
         } else { // Very close
+            // Check for backstep counters
+            if (isTargetBehind() && getRandomInt(1, 100) <= 80) {
+                if (isTargetOnSide(true)) {
+                    act05Per = 30; // Backstep slash right
+                } else {
+                    act06Per = 30; // Backstep slash left
+                }
+            }
             act01Per = 15;
             act03Per = 15;
             act04Per = 30;
             act07Per = 10;
-            act12Per = 30;  // Ground slam
         }
     }
     
@@ -328,10 +323,10 @@ void HolySwordWolfAI::selectAction() {
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act02Per)) {
         // Action 2: Dash attack
-        addGoal(std::make_unique<MoveToTargetGoal>(ATTACK_FAR));
-        if (getRandomInt(1, 100) <= 30) {
+        addGoal(std::make_unique<MoveToTargetGoal>(ATTACK_CLOSE));
+        if (getRandomInt(1, 100) <= 30 && targetDist < ATTACK_CLOSE) {
             addGoal(std::make_unique<AttackGoal>(AttackType::DASH_ATTACK));
-        } else {
+        } else if (targetDist < ATTACK_CLOSE){
             addGoal(std::make_unique<AttackGoal>(AttackType::DASH_ATTACK));
             addGoal(std::make_unique<AttackGoal>(AttackType::DASH_FOLLOWUP));
         }
@@ -397,10 +392,15 @@ void HolySwordWolfAI::selectAction() {
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act13Per)) {
         // Action 13: Projectile
-        addGoal(std::make_unique<MoveToTargetGoal>(12.0f));
+        addGoal(std::make_unique<MoveToTargetGoal>(5.0f));
         addGoal(std::make_unique<AttackGoal>(AttackType::PROJECTILE));
         m_aggressionLevel += 10;
+    } else if (roll <= (cumulative += act14Per)) {
+        // Action 13: Projectile
+        addGoal(std::make_unique<SidewayMoveGoal>(true, 2.0f));
+        m_aggressionLevel += 10;
     }
+
     
     // Add after-action behavior
     int afterRoll = getRandomInt(1, 100);

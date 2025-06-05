@@ -41,8 +41,6 @@ void Player::update(float deltaTime) {
     
     m_animationTimer += deltaTime;
 
-    std::cout << "Player State: " << static_cast<int>(m_state) << std::endl;
-
     // Regenerate stamina
     if (m_state == PlayerState::DODGING || m_state == PlayerState::ATTACKING) {
         m_timeSinceStaminaUse = 0.0f;

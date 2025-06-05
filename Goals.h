@@ -31,6 +31,13 @@ enum class StepType {
     SIDESTEP_RIGHT = 703,
 };
 
+enum class GoalType {
+    ATTACK,
+    MOVE_TO_TARGET,
+    STEP,
+    SIDEWAY_MOVE
+};
+
 // Base class for AI Goals
 class AIGoal {
 public:
@@ -38,6 +45,7 @@ public:
     virtual void activate(class HolySwordWolfAI* ai) = 0;
     virtual bool update(class HolySwordWolfAI* ai, float deltaTime) = 0; // Returns true when complete
     virtual void terminate(class HolySwordWolfAI* ai) = 0;
+    virtual GoalType getType() const = 0;
     
     float lifeTime = -1.0f; // -1 means infinite
 };
@@ -56,6 +64,8 @@ public:
     void activate(class HolySwordWolfAI* ai) override;
     bool update(class HolySwordWolfAI* ai, float deltaTime) override;
     void terminate(class HolySwordWolfAI* ai) override;
+    GoalType getType() const override { return GoalType::ATTACK; }
+    AttackType getAttackType() const { return attackType; }
 };
 
 class MoveToTargetGoal : public AIGoal {
@@ -70,6 +80,8 @@ public:
     void activate(class HolySwordWolfAI* ai) override;
     bool update(class HolySwordWolfAI* ai, float deltaTime) override;
     void terminate(class HolySwordWolfAI* ai) override;
+    GoalType getType() const override { return GoalType::MOVE_TO_TARGET; }
+    float getTargetDistance() const { return targetDistance; }
 };
 
 class StepGoal : public AIGoal {
@@ -79,12 +91,14 @@ private:
     float currentProgress = 0;
     
 public:
-    StepGoal(StepType type, float dist = 2.0f) 
+    StepGoal(StepType type, float dist = 5.0f) 
         : stepType(type), stepDistance(dist) {}
     
     void activate(class HolySwordWolfAI* ai) override;
     bool update(class HolySwordWolfAI* ai, float deltaTime) override;
     void terminate(class HolySwordWolfAI* ai) override;
+    GoalType getType() const override { return GoalType::STEP; }
+    StepType getStepType() const { return stepType; }
 };
 
 class SidewayMoveGoal : public AIGoal {
@@ -100,6 +114,8 @@ public:
     void activate(class HolySwordWolfAI* ai) override;
     bool update(class HolySwordWolfAI* ai, float deltaTime) override;
     void terminate(class HolySwordWolfAI* ai) override;
+    GoalType getType() const override { return GoalType::SIDEWAY_MOVE; }
+    bool isMoveRight() const { return moveRight; }
 };
 
 #endif

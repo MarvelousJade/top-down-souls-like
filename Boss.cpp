@@ -8,7 +8,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-float bossAttackRange = 4.0f;
+float bossAttackRange = 6.0f;
 
 Boss::Boss(float x, float y)
     : Entity(x, y, 60, 120, 300),
@@ -18,7 +18,7 @@ Boss::Boss(float x, float y)
       m_animDuration(0.0f),
       m_facingDirection(0, 1),
       m_swordAngle(0.0f),
-      m_swordLength(4.0f),
+      m_swordLength(6.0f),
       m_swordOnRightSide(true),
       m_baseAttackDamage(25.0f),
       m_currentAttackDamage(25.0f),
@@ -37,9 +37,15 @@ void Boss::update(float deltaTime) {
         Vector2D toTarget = m_targetMovePosition - m_position;
         float distance = toTarget.length();
         
-        if (distance > 5.0f) {
+        if (distance > 0.0f) {
             Vector2D movement = toTarget.normalized() * m_moveSpeed * deltaTime;
-            m_position = m_position + movement;
+
+            // Prevent overshooting
+            if (movement.length() > distance) {
+                m_position = m_targetMovePosition;
+            } else {
+                m_position = m_position + movement;
+            }
             
             // Keep in bounds
             float minX = GameUnits::toMeters(60.0f);  // 2.67 meters
@@ -265,12 +271,12 @@ void Boss::startAttackAnimation(BossAttackAnim attackType) {
     m_animTimer = m_animDuration;
 }
 
-void Boss::startMoving(const Vector2D& targetPos, float speed) {
+void Boss::startMoving(const Vector2D& targetPos, float speedMultiplier) {
     if (!canAct()) return;
     
     m_animState = BossAnimState::MOVING;
     m_targetMovePosition = targetPos;
-    m_moveSpeed = m_moveSpeed * speed;
+    m_moveSpeed = m_moveSpeed * speedMultiplier;
     m_facingDirection = (targetPos - m_position).normalized();
 }
 

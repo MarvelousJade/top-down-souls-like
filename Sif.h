@@ -1,4 +1,6 @@
-#pragma once
+#ifndef SIF_H
+#define SIF_H
+
 #include <SDL2/SDL.h>
 #include <random>
 #include <memory>
@@ -33,9 +35,10 @@ class HolySwordWolfAI {
     int m_aggressionLevel = 0; // Tracks from script's ai:GetNumber(0)
     
     // Distance thresholds
-    const float ATTACK_CLOSE = 2.6f;
-    const float ATTACK_MID = 5.2f;
-    const float ATTACK_FAR = 13.5f;
+    const float ATTACK_VERY_CLOSE = 4.0f ; // 4
+    const float ATTACK_CLOSE = bossAttackRange;
+    const float ATTACK_MID = 8.0f;
+    const float ATTACK_FAR = 12.0f;
     
 public:
     HolySwordWolfAI(Boss* entity, Player* player);
@@ -81,3 +84,5 @@ public:
     friend class StepGoal;
     friend class SidewayMoveGoal;
 };
+
+#endif

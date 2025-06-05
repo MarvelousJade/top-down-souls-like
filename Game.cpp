@@ -230,10 +230,11 @@ void Game::update(float deltaTime) {
         
         // Check appropriate hitbox based on attack type
         Circle attackCircle = m_boss->getAttackCircle();
-        isCollided = checkCollision(attackCircle, playerBox);
+        SDL_Rect bossSwordBox = m_boss->getSwordHitbox();
+        isCollided = checkCollision(bossSwordBox, playerBox);
         
         if (isCollided) {
-            m_player->takeDamage(m_boss->getAttackDamage());
+            // m_player->takeDamage(m_boss->getAttackDamage());
             m_boss->setDamageDealt();
         }
     }

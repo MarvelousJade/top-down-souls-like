@@ -1,4 +1,3 @@
-// === Entity.h ===
 #ifndef ENTITY_H
 #define ENTITY_H
 
