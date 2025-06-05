@@ -18,7 +18,7 @@ Boss::Boss(float x, float y)
       m_animDuration(0.0f),
       m_facingDirection(0, 1),
       m_swordAngle(0.0f),
-      m_swordLength(3.0f),
+      m_swordLength(4.0f),
       m_swordOnRightSide(true),
       m_baseAttackDamage(25.0f),
       m_currentAttackDamage(25.0f),
@@ -31,7 +31,7 @@ Boss::Boss(float x, float y)
 void Boss::update(float deltaTime) {
     // Update animation
     updateAnimation(deltaTime);
-    
+   
     // Handle movement
     if (m_animState == BossAnimState::MOVING) {
         Vector2D toTarget = m_targetMovePosition - m_position;
@@ -176,10 +176,10 @@ void Boss::render(SDL_Renderer* renderer) {
     // Draw sword
     SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
     
-    Vector2D swordBase = m_position + m_facingDirection * GameUnits::toMeters(30);
-    Vector2D swordEnd = swordBase + Vector2D(cos(m_swordAngle), sin(m_swordAngle)) * m_swordLength;
+    Vector2D m_swordBase = m_position + m_facingDirection * GameUnits::toMeters(30);
+    Vector2D swordEnd = m_swordBase + Vector2D(cos(m_swordAngle), sin(m_swordAngle)) * m_swordLength;
     
-    Vector2D pixelBase = GameUnits::toPixels(swordBase);
+    Vector2D pixelBase = GameUnits::toPixels(m_swordBase);
     Vector2D pixelEnd = GameUnits::toPixels(swordEnd);
 
     // Draw sword as thick line
@@ -331,8 +331,8 @@ void Boss::takeDamage(float damage) {
 }
 
 void Boss::updateSwordPosition() {
-    Vector2D swordBase = m_position + m_facingDirection * GameUnits::toMeters(30);
-    m_swordTipPosition = swordBase + Vector2D(cos(m_swordAngle), sin(m_swordAngle)) * m_swordLength;
+    m_swordBase = m_position + m_facingDirection * GameUnits::toMeters(30);
+    m_swordTipPosition = m_swordBase + Vector2D(cos(m_swordAngle), sin(m_swordAngle)) * m_swordLength;
 }
 
 float Boss::getAnimationProgress() const {
@@ -350,7 +350,7 @@ Circle Boss::getAttackCircle() const {
 }
 
 SDL_Rect Boss::getSwordHitbox() const {
-    Vector2D pixelPos = GameUnits::toPixels(m_position);
+    Vector2D pixelPos = GameUnits::toPixels(m_swordBase);
     Vector2D pixelSwordTip = GameUnits::toPixels(m_swordTipPosition);
 
     int x = std::min(pixelPos.x, pixelSwordTip.x) - 10;

@@ -2,6 +2,7 @@
 #define BOSS_H
 
 #include "Entity.h"
+#include "Vector2D.h"
 #include <cmath>
 #include <algorithm>
 
@@ -41,6 +42,7 @@ private:
     Vector2D m_facingDirection;
     float m_swordAngle;
     float m_swordLength;
+    Vector2D m_swordBase;
     Vector2D m_swordTipPosition;
     bool m_swordOnRightSide;
     
@@ -81,6 +83,7 @@ public:
     float getAttackRange() const { return m_attackRange; }
     float getAttackDamage() const { return m_currentAttackDamage; }
     float getAnimationProgress() const;
+    Vector2D getSwordBase() const { return m_swordBase; }
 
     // Combat
     Circle getAttackCircle() const;
