@@ -2,18 +2,21 @@
 #include "GameUnits.h"
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 Player::Player(float x, float y)
-    : Entity(x, y, 30, 50, 100),  // <-- Change this 100 to modify player health
+    : Entity(x, y, 30, 50, 100),  // postion, width, height, health
       m_state(PlayerState::IDLE),
       m_speed(10.0f),
       m_maxStamina(100.0f),
       m_currentStamina(100.0f),
-      m_staminaRegenRate(20.0f),
+      m_staminaRegenRate(40.0f),
+      m_staminaRegenDelay(0.4f),  
+      m_timeSinceStaminaUse(0.0f),
       m_attackCooldown(0.0f),
       m_attackDamage(20.0f),
       m_attackRange(2.0f),
@@ -22,8 +25,8 @@ Player::Player(float x, float y)
       m_swordLength(1.5f),
       m_facingDirection(0, -1),  
       m_dodgeCooldown(0.0f),
-      m_dodgeDuration(0.3f),
-      m_dodgeSpeed(12.0f),
+      m_dodgeDuration(0.5f),
+      m_dodgeSpeed(10.0f),
       m_stateTimer(0.0f),
       m_animationTimer(0.0f),
       m_windowWidth(GameUnits::toMeters(800.0f)),
@@ -38,8 +41,16 @@ void Player::update(float deltaTime) {
     
     m_animationTimer += deltaTime;
 
+    std::cout << "Player State: " << static_cast<int>(m_state) << std::endl;
+
     // Regenerate stamina
-    if (m_state != PlayerState::DODGING && m_state != PlayerState::ATTACKING) {
+    if (m_state == PlayerState::DODGING || m_state == PlayerState::ATTACKING) {
+        m_timeSinceStaminaUse = 0.0f;
+    } else {
+        m_timeSinceStaminaUse += deltaTime;
+    }
+
+    if (m_timeSinceStaminaUse >= m_staminaRegenDelay) {
         m_currentStamina = std::min(m_maxStamina, m_currentStamina + m_staminaRegenRate * deltaTime);
     }
     
@@ -184,7 +195,7 @@ void Player::attack() {
         m_state = PlayerState::ATTACKING;
         m_stateTimer = 0.3f;
         m_attackCooldown = 0.5f;
-        m_currentStamina -= 10.0f;
+        m_currentStamina -= 15.0f;
         m_hasDealtDamage = false;  // Reset the flag for new attack
         m_swordAngle = -M_PI/3;  // Start position for swing
     }
@@ -194,7 +205,7 @@ void Player::dodge(const Vector2D& direction) {
     if (canDodge()) {
         m_state = PlayerState::DODGING;
         m_stateTimer = m_dodgeDuration;
-        m_dodgeCooldown = 1.0f;
+        m_dodgeCooldown = 0.5f;
         m_dodgeDirection = direction.normalized();
         m_currentStamina -= 25.0f;
         // Face the dodge direction
@@ -223,7 +234,8 @@ void Player::updateSwordPosition() {
 
 SDL_Rect Player::getSwordHitbox() const {
     // Create a rectangle along the sword's length
-    Vector2D pixelPos = GameUnits::toPixels(m_position);
+    Vector2D swordBase = m_position + m_facingDirection * GameUnits::toMeters(15);
+    Vector2D pixelPos = GameUnits::toPixels(swordBase);
     Vector2D pixelSwordTip = GameUnits::toPixels(m_swordTipPosition);
 
     int x = (int)(std::min(pixelPos.x, pixelSwordTip.x) - 10);
@@ -231,4 +243,5 @@ SDL_Rect Player::getSwordHitbox() const {
     int w = (int)(std::abs(pixelSwordTip.x - pixelPos.x) + 20);
     int h = (int)(std::abs(pixelSwordTip.y - pixelPos.y) + 20);
 
-    return SDL_Rect{x, y, w, h};}
+    return SDL_Rect{x, y, w, h};
+}

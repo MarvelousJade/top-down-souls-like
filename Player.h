@@ -19,7 +19,9 @@ private:
     float m_maxStamina;
     float m_currentStamina;
     float m_staminaRegenRate;
-    
+    float m_staminaRegenDelay;  // 1.5 second delay before stamina starts regenerating
+    float m_timeSinceStaminaUse;
+
     // Combat
     float m_attackCooldown;
     float m_attackDamage;
