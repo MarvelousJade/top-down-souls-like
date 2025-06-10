@@ -6,11 +6,20 @@
 #include <memory>
 #include <vector>
 #include <cmath>
+#include <deque>
 #include "Entity.h"
 #include "Goals.h"
 #include "Player.h"
 #include "Vector2D.h"
 #include "Boss.h"
+
+// Debug information for goal tracking
+struct GoalDebugInfo {
+    std::string goalName;
+    std::string reason;
+    float timestamp;
+    GoalType type;
+};
 
 // Main AI class
 class HolySwordWolfAI {
@@ -22,6 +31,15 @@ class HolySwordWolfAI {
     std::vector<std::unique_ptr<AIGoal>> m_goalQueue;
     std::unique_ptr<AIGoal> m_currentGoal;
     
+    // Debug system
+    bool m_debugEnabled = false;
+    std::deque<GoalDebugInfo> m_goalHistory;  // Recent goal additions
+    std::vector<std::string> m_goalQueueDebug;  // Current queue state
+    std::string m_currentGoalDebug = "None";
+    std::string m_lastActionReason = "";
+    float m_debugTimer = 0;
+    static const size_t MAX_HISTORY_SIZE = 20;
+
     // Special states
     bool m_isEnhanced = false; // Special effect 5401 in the scripts
     float m_enhancedTimer = 0;
@@ -39,6 +57,13 @@ class HolySwordWolfAI {
     const float ATTACK_CLOSE = bossAttackRange;
     const float ATTACK_MID = 8.0f;
     const float ATTACK_FAR = 12.0f;
+
+    // Debug helper functions
+    std::string goalTypeToString(GoalType type) const;
+    std::string attackTypeToString(AttackType type) const;
+    std::string stepTypeToString(StepType type) const;
+    void logGoalAddition(const std::string& goalName, const std::string& reason);
+    void updateGoalQueueDebug();
     
 public:
     HolySwordWolfAI(Boss* entity, Player* player);
@@ -53,6 +78,7 @@ public:
     void executeGoal(std::unique_ptr<AIGoal> goal);
     void clearGoals();
     void addGoal(std::unique_ptr<AIGoal> goal);
+    void addGoalWithReason(std::unique_ptr<AIGoal> goal, const std::string& reason);
     
     // Utility functions
     float getDistanceToTarget() const;
@@ -68,6 +94,15 @@ public:
     bool isEnhanced() const { return m_isEnhanced; }
     void setEnhanced(bool enhanced) { m_isEnhanced = enhanced; }
     
+    // Debug system
+    void setDebugEnabled(bool enabled) { m_debugEnabled = enabled; }
+    bool isDebugEnabled() const { return m_debugEnabled; }
+    const std::deque<GoalDebugInfo>& getGoalHistory() const { return m_goalHistory; }
+    const std::vector<std::string>& getGoalQueueDebug() const { return m_goalQueueDebug; }
+    const std::string& getCurrentGoalDebug() const { return m_currentGoalDebug; }
+    int getAggressionLevel() const { return m_aggressionLevel; }
+    float getActionCooldown() const { return m_actionCooldown; }
+
     // Movement functions for goals
     void moveToward(const Vector2D& pos, float speed);
     void moveAway(const Vector2D& pos, float speed);
@@ -84,5 +119,7 @@ public:
     friend class StepGoal;
     friend class SidewayMoveGoal;
 };
+
+extern HolySwordWolfAI* g_sifAI;
 
 #endif

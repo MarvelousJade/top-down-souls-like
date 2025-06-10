@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++14 -Wall -Wextra
-LDFLAGS = -lSDL2
+LDFLAGS = -lSDL2 -lSDL2_ttf
 DEBUG_FLAGS = -g -O0 -DDEBUG
 
 SOURCES = main.cpp Game.cpp Entity.cpp Player.cpp Boss.cpp InputHandler.cpp Renderer.cpp Timer.cpp Sif.cpp

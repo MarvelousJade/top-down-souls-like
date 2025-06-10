@@ -99,12 +99,21 @@ bool Game::init(const char* title, int width, int height) {
     
     // Initialize Sif AI
     m_sifAI = std::make_unique<HolySwordWolfAI>(m_boss.get(), m_player.get());
+
+    // Enable AI debug by default
+    m_sifAI->setDebugEnabled(true);
     
     m_gameRenderer = std::make_unique<Renderer>(m_renderer, width, height);
     m_inputHandler = std::make_unique<InputHandler>();
     
     m_lastTime = SDL_GetTicks();
     m_isRunning = true;
+    
+    std::cout << "=== AI Debug System Active ===" << std::endl;
+    std::cout << "Ctrl+D: Toggle debug visuals" << std::endl;
+    std::cout << "Ctrl+E: Toggle enhanced AI mode" << std::endl;
+    std::cout << "Ctrl+A: Toggle AI debug logs" << std::endl;
+    std::cout << "=============================" << std::endl;
     
     return true;
 }
@@ -117,10 +126,18 @@ void Game::handleEvents() {
         } else if (event.type == SDL_KEYDOWN) {
             if (event.key.keysym.sym == SDLK_d && event.key.keysym.mod & KMOD_CTRL) {
                 m_gameRenderer->toggleDebugMode();  // Ctrl+D for debug mode
+                std::cout << "[Debug] Visual debug mode: " << (m_gameRenderer->isDebugMode() ? "ON" : "OFF") << std::endl;
             }
-            // Add special effect toggle for testing (optional)
+            // Add special effect toggle for testing
             else if (event.key.keysym.sym == SDLK_e && event.key.keysym.mod & KMOD_CTRL) {
                 m_sifAI->setEnhanced(!m_sifAI->isEnhanced());  // Ctrl+E to toggle enhanced mode
+                std::cout << "[AI] Enhanced mode: " << (m_sifAI->isEnhanced() ? "ON" : "OFF") << std::endl;
+            }
+            // Toggle AI debug logging
+            else if (event.key.keysym.sym == SDLK_a && event.key.keysym.mod & KMOD_CTRL) {
+                bool debugEnabled = !m_sifAI->isDebugEnabled();
+                m_sifAI->setDebugEnabled(debugEnabled);  // Ctrl+A to toggle AI debug
+                std::cout << "[AI] Debug logging: " << (debugEnabled ? "ON" : "OFF") << std::endl;
             }
         }
     }
