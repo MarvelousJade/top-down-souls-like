@@ -91,7 +91,7 @@ private:
     float currentProgress = 0;
     
 public:
-    StepGoal(StepType type, float dist = 5.0f) 
+    StepGoal(StepType type, float dist = 3.0f) 
         : stepType(type), stepDistance(dist) {}
     
     void activate(class HolySwordWolfAI* ai) override;

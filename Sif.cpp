@@ -142,7 +142,7 @@ void StepGoal::activate(HolySwordWolfAI* ai) {
             break;
     }
     
-    ai->m_self->performStep(stepDir, stepDistance * 2.0f); // Scale up distance
+    ai->m_self->performStep(stepDir, stepDistance); // Scale up distance
 }
 
 bool StepGoal::update(HolySwordWolfAI* ai, float deltaTime) {
@@ -370,11 +370,11 @@ void HolySwordWolfAI::selectAction() {
     // Action percentages based on distance and state
     // 1-light combo, 2-dash attack, 3-spin attack, 4-Uppercut, 
     // 5-backstep slash right, 6-backstep slash left, 7-backstep,
-    // 8-11 enhanced, 12-ground slam, 14-sideway move
+    // 8-11 enhanced, 12-ground slam, 14-sideway move, 15-walk to target
     int act01Per = 0, act02Per = 0, act03Per = 0, act04Per = 0;
     int act05Per = 0, act06Per = 0, act07Per = 0, act08Per = 0;
     int act09Per = 0, act10Per = 0, act11Per = 0, act12Per = 0, act13Per = 0, act14Per = 0;
-    
+    int act15Per = 0; 
     std::stringstream reasonBuilder;
     reasonBuilder << "Dist:" << std::fixed << std::setprecision(1) << targetDist;
     
@@ -402,25 +402,25 @@ void HolySwordWolfAI::selectAction() {
         // Normal state behavior
         if (targetDist > ATTACK_FAR) { // > 12
             act02Per = 70;  // Dash attack
-            act14Per = 30;  // Projectile
+            act14Per = 30;
             reasonBuilder << " FarRange";
         } else if (targetDist > (ATTACK_MID) / 2) { // > 8
-            act02Per = 70;  // Dash attack
+            act02Per = 50;  // Dash attack
             act14Per = 30;
+            act15Per = 20;
             reasonBuilder << " MidFar";
         } else if (targetDist > ATTACK_CLOSE) { // > 6
-            act02Per = 95;  // Dash attack
-            // act13Per = 30;  // Projectile
+            act01Per = 70;
+            act02Per = 5;  // Dash attack
             act07Per = 5;   // Backstep
+            act15Per = 20; 
             reasonBuilder << " MidClose";
         } else if (targetDist > ATTACK_VERY_CLOSE) { // > 4
-            //
                 act01Per = 35;
                 act03Per = 35;
                 act04Per = 5;
                 act07Per = 25;
                 reasonBuilder << " Close";
-            
         } else { // Very close
             // Check for backstep counters
             if (isTargetBehind() && getRandomInt(1, 100) <= 80) {
@@ -547,9 +547,11 @@ void HolySwordWolfAI::selectAction() {
         addGoalWithReason(std::make_unique<AttackGoal>(AttackType::PROJECTILE), "Projectile");
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act14Per)) {
-        // Action 13: Projectile
+        // Action 14: SidewayMove
         addGoalWithReason(std::make_unique<SidewayMoveGoal>(true, 2.0f), m_lastActionReason + " SidewayMove");
         m_aggressionLevel += 10;
+    } else if (roll <= (cumulative += act15Per)) {
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(true, 5.0f), m_lastActionReason + " Walk to target");
     }
 
     
@@ -562,11 +564,11 @@ void HolySwordWolfAI::selectAction() {
         } else {
             addGoalWithReason(std::make_unique<SidewayMoveGoal>(getRandomInt(0, 1), 2.5f), "LowHP Sidestep");
         }
-    } else if (afterRoll > 30) {
+    } else if (afterRoll > 70) {
         // Normal after-action behavior
-        if (afterRoll <= 40) {
+        if (afterRoll <= 80) {
             addGoalWithReason(std::make_unique<MoveToTargetGoal>(5.0f), "PostAttack Distance");
-        } else if (afterRoll <= 80) {
+        } else if (afterRoll <= 90) {
             addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP), "PostAttack Backstep");
         } else {
             StepType sideStep = (getRandomInt(1, 100) <= 50) ? 
