@@ -1,5 +1,6 @@
 #include "LTexture.h"
 #include <stdio.h>
+#include <iostream>
 
 // Static member definition
 SDL_Renderer* LTexture::s_Renderer = nullptr;

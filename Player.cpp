@@ -26,7 +26,7 @@ Player::Player(float x, float y)
       m_timeSinceStaminaUse(0.0f),
       m_attackCooldown(0.0f),
       m_attackDamage(20.0f),
-      m_attackRange(2.0f),
+      m_attackRange(3.0f),
       m_hasDealtDamage(false),
       m_comboCount(0),
       m_swordAngle(0.0f),
@@ -169,21 +169,31 @@ void Player::updateAnimation(float deltaTime) {
     // Assuming sprite sheet layout: [Animation_Row][Direction_Column * FRAMES_PER_ANIMATION + Frame]
     int animationRow = static_cast<int>(m_currentAnimation);
     int directionOffset = static_cast<int>(m_direction);
+
+    // Bounds checking
+    if (animationRow < 0 || animationRow >= TOTAL_ANIMATIONS) animationRow = 0;
+    if (directionOffset < 0 || directionOffset >= DIRECTIONS_PER_ANIMATION) directionOffset = 0;
+    if (m_frameIndex < 0 || m_frameIndex >= FRAMES_PER_ANIMATION) m_frameIndex = 0;
     
     // For directional animations (most animations have 4 directions)
-    bool isDirectional = m_currentAnimation != AnimationType::DEATH;
+    bool isDirectional = true; // m_currentAnimation != AnimationType::DEATH;
     
+    // Calculate the full frame position
+    int baseX, baseY;
     if (isDirectional) {
-        m_currentFrame.x = (directionOffset * FRAMES_PER_ANIMATION + m_frameIndex) * FRAME_WIDTH;
-        m_currentFrame.y = animationRow * FRAME_HEIGHT;
+        baseX = (directionOffset * FRAMES_PER_ANIMATION + m_frameIndex) * FRAME_WIDTH;
+        baseY = animationRow * FRAME_HEIGHT;
     } else {
         // Non-directional animations (special attacks, death)
         m_currentFrame.x = m_frameIndex * FRAME_WIDTH;
         m_currentFrame.y = animationRow * FRAME_HEIGHT;
     }
     
-    m_currentFrame.w = FRAME_WIDTH;
-    m_currentFrame.h = FRAME_HEIGHT;
+    // NEW: Apply cropping to remove empty space
+    m_currentFrame.x = baseX + CHAR_CROP_X;           // Offset into the frame
+    m_currentFrame.y = baseY + CHAR_CROP_Y;           // Offset into the frame  
+    m_currentFrame.w = CHAR_CROP_WIDTH;               // Smaller width
+    m_currentFrame.h = CHAR_CROP_HEIGHT;              // Smaller height
 }
 
 AnimationType Player::getIdleAnimation() const {
@@ -191,7 +201,7 @@ AnimationType Player::getIdleAnimation() const {
         case WeaponType::SWORD:
             return AnimationType::SWORD_IDLE;
         default:
-            return AnimationType::IDLE;
+            return AnimationType::SWORD_IDLE;
     }
 }
 
@@ -200,7 +210,7 @@ AnimationType Player::getRunAnimation() const {
         case WeaponType::SWORD:
             return AnimationType::SWORD_RUN;
         default:
-            return AnimationType::RUN;
+            return AnimationType::SWORD_RUN;
     }
 }
 
@@ -219,7 +229,27 @@ AnimationType Player::getAttackAnimation() const {
 }
 
 void Player::updateDirection(const Vector2D& moveDir) {
-    m_direction = PlayerDirection::DOWN;
+    // Don't change direction if not moving
+    if (moveDir.length() < 0.1f) {
+        return; // Keep current direction
+    }
+    
+    // Check which axis has stronger movement
+    if (abs(moveDir.x) > abs(moveDir.y)) {
+        // Horizontal movement is stronger
+        if (moveDir.x > 0) {
+            m_direction = PlayerDirection::RIGHT;
+        } else {
+            m_direction = PlayerDirection::LEFT;
+        }
+    } else {
+        // Vertical movement is stronger (or equal)
+        if (moveDir.y > 0) {
+            m_direction = PlayerDirection::DOWN;
+        } else {
+            m_direction = PlayerDirection::UP;
+        }
+    }
 }
 
 void Player::update(float deltaTime) {
@@ -255,40 +285,40 @@ void Player::update(float deltaTime) {
     // When not moving, keep the last facing direction (don't auto-face boss)
  
     // Update state
-    switch (m_state) {
-        case PlayerState::ATTACKING:
-            m_stateTimer -= deltaTime;
-            // Animate sword swing
-            m_swordAngle = -M_PI/3 + (M_PI * 2/3 * (0.3f - m_stateTimer) / 0.3f);
-            if (m_stateTimer <= 0) {
-                m_state = PlayerState::IDLE;
-                // m_attackCooldown = 0.5f;
-                m_swordAngle = 0;
-            }
-            break;
-            
-        case PlayerState::DODGING:
-            m_stateTimer -= deltaTime;
-            m_position = m_position + m_dodgeDirection * m_dodgeSpeed * deltaTime;
-            if (m_stateTimer <= 0) {
-                m_state = PlayerState::IDLE;
-            }
-            break;
-            
-        case PlayerState::MOVING:
-            m_position = m_position + m_velocity * deltaTime;
-            // Sword bob while moving
-            m_swordAngle = sin(m_animationTimer * 3) * 0.15f;
-            break;
-
-        case PlayerState::IDLE:
-            // Idle sword animation
-            m_swordAngle = sin(m_animationTimer * 2) * 0.1f;
-            break;
-            
-        default:
-            break;
-    }
+    // switch (m_state) {
+    //     case PlayerState::ATTACKING:
+    //         m_stateTimer -= deltaTime;
+    //         // Animate sword swing
+    //         m_swordAngle = -M_PI/3 + (M_PI * 2/3 * (0.3f - m_stateTimer) / 0.3f);
+    //         if (m_stateTimer <= 0) {
+    //             m_state = PlayerState::IDLE;
+    //             // m_attackCooldown = 0.5f;
+    //             m_swordAngle = 0;
+    //         }
+    //         break;
+    //
+    //     case PlayerState::DODGING:
+    //         m_stateTimer -= deltaTime;
+    //         m_position = m_position + m_dodgeDirection * m_dodgeSpeed * deltaTime;
+    //         if (m_stateTimer <= 0) {
+    //             m_state = PlayerState::IDLE;
+    //         }
+    //         break;
+    //
+    //     case PlayerState::MOVING:
+    //         m_position = m_position + m_velocity * deltaTime;
+    //         // Sword bob while moving
+    //         m_swordAngle = sin(m_animationTimer * 3) * 0.15f;
+    //         break;
+    //
+    //     case PlayerState::IDLE:
+    //         // Idle sword animation
+    //         m_swordAngle = sin(m_animationTimer * 2) * 0.1f;
+    //         break;
+    //
+    //     default:
+    //         break;
+    // }
 
     // Handle state transitions and animations
     switch (m_state) {
@@ -360,7 +390,44 @@ void Player::update(float deltaTime) {
     updateSwordPosition();
 }
 
+void Player::debugSizes() {
+    std::cout << "=== PLAYER SIZE DEBUG ===" << std::endl;
+    
+    // Entity logical size (in meters)
+    std::cout << "Entity size (meters): " << m_width << " x " << m_height << std::endl;
+    
+    // Entity size in pixels
+    float widthPixels = GameUnits::toPixels(m_width);
+    float heightPixels = GameUnits::toPixels(m_height);
+    std::cout << "Entity size (pixels): " << widthPixels << " x " << heightPixels << std::endl;
+    
+    // Sprite frame size
+    std::cout << "Sprite frame size: " << FRAME_WIDTH << " x " << FRAME_HEIGHT << std::endl;
+    
+    // Position
+    Vector2D pixelPos = GameUnits::toPixels(m_position);
+    std::cout << "Position (pixels): " << pixelPos.x << ", " << pixelPos.y << std::endl;
+    
+    // Render position
+    int renderX = (int)pixelPos.x - FRAME_WIDTH / 2;
+    int renderY = (int)pixelPos.y - FRAME_HEIGHT / 2;
+    std::cout << "Render position: " << renderX << ", " << renderY << std::endl;
+    
+    // Collision box
+    SDL_Rect collisionBox = getCollisionBox();
+    std::cout << "Collision box: (" << collisionBox.x << ", " << collisionBox.y 
+              << ", " << collisionBox.w << ", " << collisionBox.h << ")" << std::endl;
+    
+    std::cout << "======================" << std::endl;
+}
+
 void Player::render(SDL_Renderer* renderer) {
+    static bool debugPrinted = false;
+    if (!debugPrinted) {
+        debugSizes();
+        debugPrinted = true;
+    }
+
     Vector2D pixelPos = GameUnits::toPixels(m_position);
     
     // Calculate render position (center the sprite on the entity position)
@@ -368,6 +435,13 @@ void Player::render(SDL_Renderer* renderer) {
     int renderY = (int)pixelPos.y - FRAME_HEIGHT / 2;
     
     if (s_textureLoaded) {
+        float spriteScale = 2.5f; // Adjust as needed
+        int renderWidth = (int)(CHAR_CROP_WIDTH * spriteScale);
+        int renderHeight = (int)(CHAR_CROP_HEIGHT * spriteScale);
+        
+        int renderX = (int)pixelPos.x - renderWidth / 2;
+        int renderY = (int)pixelPos.y - renderHeight / 2;
+        
         // Apply color modulation based on state
         switch (m_state) {
             case PlayerState::ATTACKING:
@@ -384,8 +458,12 @@ void Player::render(SDL_Renderer* renderer) {
         }
         
         // Render the sprite
-        s_playerSpriteSheet.render(renderX, renderY, &m_currentFrame);
+        // s_playerSpriteSheet.render(renderX, renderY, &m_currentFrame);
         
+        // Render the CROPPED sprite (no empty space)
+        SDL_Rect destRect = {renderX, renderY, renderWidth, renderHeight};
+        SDL_RenderCopy(renderer, s_playerSpriteSheet.getTexture(), &m_currentFrame, &destRect);
+
         // Reset color modulation
         s_playerSpriteSheet.setColor(255, 255, 255);
         s_playerSpriteSheet.setAlpha(255);
@@ -431,28 +509,6 @@ void Player::render(SDL_Renderer* renderer) {
             pixelBase .x, pixelBase.y + i,
             pixelEnd.x, pixelEnd.y + i);
     }
-    
-    // Draw sword hilt
-    SDL_SetRenderDrawColor(renderer, 100, 100, 150, 255); // Blue hilt
-    SDL_Rect hiltRect = {
-        (int)pixelBase.x - 4,
-        (int)pixelBase.y - 4,
-        8, 8
-    };
-    SDL_RenderFillRect(renderer, &hiltRect);
-    
-    // Draw eyes to show facing direction
-    // SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    // Vector2D eyeOffset = m_facingDirection * 8;
-    // Vector2D eyeRight(-m_facingDirection.y, m_facingDirection.x);
-    //
-    // Vector2D eye1 = pixelPos + eyeOffset + eyeRight * 5;
-    // Vector2D eye2 = pixelPos + eyeOffset - eyeRight * 5;
-    
-    // SDL_Rect eyeRect1 = {(int)eye1.x - 2, (int)eye1.y - 2, 3, 3};
-    // SDL_Rect eyeRect2 = {(int)eye2.x - 2, (int)eye2.y - 2, 3, 3};
-    // SDL_RenderFillRect(renderer, &eyeRect1);
-    // SDL_RenderFillRect(renderer, &eyeRect2);
 }
 
 void Player::move(const Vector2D& direction) {

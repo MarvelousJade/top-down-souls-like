@@ -34,6 +34,7 @@ public:
     // Gets image dimensions
     int getWidth();
     int getHeight();
+    SDL_Texture* getTexture() const { return mTexture; };
 
     // Set the global renderer (call this once during initialization)
     static void setRenderer(SDL_Renderer* renderer);

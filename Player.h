@@ -31,18 +31,18 @@ enum class WeaponType {
 
 enum class AnimationType {
     // Basic animations
-    IDLE = 0,
-    RUN = 1,
+    // IDLE = 0,
+    // RUN = 1,
     DASH = 2,
     TAKE_DAMAGE = 3,
     DEATH = 4,
     
     // Sword animations
-    SWORD_IDLE = 5,
-    SWORD_RUN = 6,
-    SWORD_ATTACK1 = 7,
+    SWORD_IDLE = 0,
+    SWORD_RUN = 1,
+    SWORD_ATTACK1 = 5,
     // SWORD_ATTACK1_END = 8,
-    SWORD_ATTACK2 = 9,
+    SWORD_ATTACK2 = 6,
     // SWORD_COMBO = 10,
     // SWORD_SPECIAL = 11,
     
@@ -113,6 +113,13 @@ private:
     static const int FRAME_WIDTH = 128;
     static const int FRAME_HEIGHT = 128;
     static const int DIRECTIONS_PER_ANIMATION = 4;  // 4 directions (if applicable)
+    static const int TOTAL_ANIMATIONS = 7;  // 4 directions (if applicable)
+    
+    // NEW: Cropping constants to remove empty space
+    static const int CHAR_CROP_X = 24;      // How many pixels to crop from left
+    static const int CHAR_CROP_Y = 16;      // How many pixels to crop from top  
+    static const int CHAR_CROP_WIDTH = 80;  // Actual character width
+    static const int CHAR_CROP_HEIGHT = 96; // A
 
     void updateSwordPosition();
     void updateAnimation(float deltaTime);
@@ -130,6 +137,7 @@ public:
     static bool loadTexture(SDL_Renderer* renderer, const std::string& path);
     static void freeTexture();
 
+    void debugSizes();
     void update(float deltaTime) override;
     void render(SDL_Renderer* renderer) override;
     
