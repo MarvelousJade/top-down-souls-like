@@ -27,7 +27,7 @@ public:
     virtual void update(float deltaTime) = 0;
     virtual void render(SDL_Renderer* renderer) = 0;
     
-    void takeDamage(float damage);
+    virtual void takeDamage(float damage);
     bool isAlive() const { return m_alive; }
     
     Vector2D getPosition() const { return m_position; }

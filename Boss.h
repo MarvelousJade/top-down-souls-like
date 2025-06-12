@@ -90,7 +90,7 @@ public:
     SDL_Rect getSwordHitbox() const;
     bool hasDealtDamage() const { return m_hasDealtDamage; }
     void setDamageDealt() { m_hasDealtDamage = true; }
-    void takeDamage(float damage);
+    void takeDamage(float damage) override;
 
     // Getter methods for rendering
     BossAnimState getAnimState() const { return m_animState; }

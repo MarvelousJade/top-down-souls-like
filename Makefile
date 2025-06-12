@@ -1,9 +1,9 @@
 CXX = g++
 CXXFLAGS = -std=c++14 -Wall -Wextra
-LDFLAGS = -lSDL2 -lSDL2_ttf
+LDFLAGS = -lSDL2 -lSDL2_ttf -lSDL2_image
 DEBUG_FLAGS = -g -O0 -DDEBUG
 
-SOURCES = main.cpp Game.cpp Entity.cpp Player.cpp Boss.cpp InputHandler.cpp Renderer.cpp Timer.cpp Sif.cpp
+SOURCES = main.cpp Game.cpp Entity.cpp Player.cpp Boss.cpp InputHandler.cpp Renderer.cpp Timer.cpp Sif.cpp LTexture.cpp
 OBJECTS = $(addprefix build/, $(SOURCES:.cpp=.o))
 EXECUTABLE = boss_fight
 

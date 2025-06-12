@@ -5,6 +5,8 @@
 #include "Sif.h"
 #include "Renderer.h"
 #include "InputHandler.h"
+#include "LTexture.h"
+#include <SDL2/SDL_image.h>
 #include <iostream>
 
 // Helper function for AABB collision detection
@@ -92,6 +94,26 @@ bool Game::init(const char* title, int width, int height) {
         return false;
     }
     
+    if( TTF_Init() == -1 ) {
+            printf( "SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError() );
+    }
+
+    // Initialize SDL_image
+    int imgFlags = IMG_INIT_PNG;
+    if (!(IMG_Init(imgFlags) & imgFlags)) {
+        std::cerr << "SDL_image could not initialize! SDL_image Error: " << IMG_GetError() << std::endl;
+        return false;
+    }
+
+    // Set the global renderer for LTexture
+    LTexture::setRenderer(m_renderer);
+
+    // Load player sprite
+    if (!Player::loadTexture(m_renderer, "assets/sprites/player/player_master_spritesheet.png")) {
+        std::cerr << "Warning: Failed to load player sprite, using fallback rendering" << std::endl;
+        // Game can still continue with rectangle rendering
+    }
+
     // Initialize game objects
     m_player = std::make_unique<Player>(width / 2.0f, height * 0.75f);
     m_player->setWindowBounds(width, height);
@@ -278,6 +300,9 @@ void Game::render() {
 }
 
 void Game::clean() {
+    // Clean up player textures
+    Player::freeTexture();
+    
     // Clean up AI
     m_sifAI.reset();
     
@@ -291,5 +316,6 @@ void Game::clean() {
         m_window = nullptr;
     }
     
+    IMG_Quit();
     SDL_Quit();
 }

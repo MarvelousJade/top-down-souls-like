@@ -16,9 +16,7 @@ extern HolySwordWolfAI* g_sifAI;
 Renderer::Renderer(SDL_Renderer* renderer, int width, int height)
     : m_renderer(renderer), m_screenWidth(width), m_screenHeight(height), m_debugMode(false), m_font(nullptr), m_smallFont(nullptr) {
 
-    if( TTF_Init() == -1 ) {
-            printf( "SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError() );
-    }
+   
 
     const char* fontPaths[] = {
         "assets/fonts/Montserrat/Montserrat-VariableFont_wght.ttf",  // Project fonts folder
