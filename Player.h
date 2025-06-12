@@ -56,6 +56,13 @@ enum class AnimationType {
     // BOW_SPECIAL = 18
 };
 
+// NEW: Combo state enum
+enum class ComboState {
+    NONE,
+    ATTACK_1,
+    ATTACK_2
+};
+
 class Player : public Entity {
 private:
     PlayerState m_state;
@@ -76,6 +83,12 @@ private:
     float m_attackRange;
     bool m_hasDealtDamage;  // Flag to ensure damage is only dealt once per attack
     int m_comboCount;
+
+    // NEW: Combo system
+    ComboState m_comboState;
+    bool m_inputBuffered;  // Is next attack queued?
+    float m_comboResetTimer;
+    float m_comboResetDelay;
 
     // Sword properties
     float m_swordAngle;
@@ -128,6 +141,23 @@ private:
     AnimationType getIdleAnimation() const;
     AnimationType getRunAnimation() const;
     AnimationType getAttackAnimation() const;
+
+    enum AttackState {
+        IDLE,
+        ATTACK_1,
+        ATTACK_2
+    };
+    
+    AttackState m_attackState = IDLE;
+    bool m_inputBuffer = false;  // Stores if attack was pressed during animation
+    float m_attackTimer = 0.0f;
+    float m_attack1Duration = 0.5f;  // How long attack 1 lasts
+    float m_attack2Duration = 0.5f;  // How long attack 2 lasts
+    
+    // NEW: Combo system methods
+    void updateComboSystem(float deltaTime);
+    void startNextComboAttack();
+    void resetCombo();
 
 public:
     Player(float x, float y);

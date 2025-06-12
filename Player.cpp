@@ -21,7 +21,7 @@ Player::Player(float x, float y)
       m_speed(10.0f),
       m_maxStamina(100.0f),
       m_currentStamina(100.0f),
-      m_staminaRegenRate(40.0f),
+      m_staminaRegenRate(60.0f),
       m_staminaRegenDelay(0.4f),  
       m_timeSinceStaminaUse(0.0f),
       m_attackCooldown(0.0f),
@@ -30,7 +30,7 @@ Player::Player(float x, float y)
       m_hasDealtDamage(false),
       m_comboCount(0),
       m_swordAngle(0.0f),
-      m_swordLength(1.5f),
+      m_swordLength(2.5f),
       m_facingDirection(0, -1),  
       m_dodgeCooldown(0.0f),
       m_dodgeDuration(0.5f),
@@ -217,10 +217,10 @@ AnimationType Player::getRunAnimation() const {
 AnimationType Player::getAttackAnimation() const {
     switch (m_currentWeapon) {
         case WeaponType::SWORD:
-            if (m_comboCount == 0) {
-                return AnimationType::SWORD_ATTACK1;
-            } else if (m_comboCount == 1) {
+            if (m_comboCount == 1) {
                 return AnimationType::SWORD_ATTACK2;
+            } else if (m_comboCount == 2) {
+                return AnimationType::SWORD_ATTACK1;
             }
 
         default:
@@ -250,6 +250,44 @@ void Player::updateDirection(const Vector2D& moveDir) {
             m_direction = PlayerDirection::UP;
         }
     }
+}
+
+void Player::updateComboSystem(float deltaTime) {
+    // Update combo reset timer
+    if (m_comboState != ComboState::NONE) {
+        m_comboResetTimer += deltaTime;
+        if (m_comboResetTimer >= m_comboResetDelay) {
+            resetCombo();
+        }
+    }
+}
+
+void Player::startNextComboAttack() {
+    switch (m_comboState) {
+        case ComboState::NONE:
+            m_comboState = ComboState::ATTACK_1;
+            break;
+        case ComboState::ATTACK_1:
+            m_comboState = ComboState::ATTACK_2;
+            break;
+        case ComboState::ATTACK_2:
+            m_comboState = ComboState::ATTACK_1;  // Loop back
+            break;
+    }
+    
+    m_state = PlayerState::ATTACKING;
+    m_hasDealtDamage = false;
+    m_inputBuffered = false;
+    m_comboResetTimer = 0.0f;  // Reset the combo timer
+    
+    std::cout << "Starting combo attack: " << (int)m_comboState << std::endl;
+}
+
+void Player::resetCombo() {
+    m_comboState = ComboState::NONE;
+    m_inputBuffered = false;
+    m_comboResetTimer = 0.0f;
+    std::cout << "Combo reset" << std::endl;
 }
 
 void Player::update(float deltaTime) {
@@ -320,6 +358,9 @@ void Player::update(float deltaTime) {
     //         break;
     // }
 
+    // Update combo system
+    updateComboSystem(deltaTime);
+
     // Handle state transitions and animations
     switch (m_state) {
         case PlayerState::IDLE:
@@ -332,6 +373,7 @@ void Player::update(float deltaTime) {
             break;
             
         case PlayerState::ATTACKING:
+            m_stateTimer -= deltaTime;
             // Set attack animation if not already set
             if (m_currentAnimation != getAttackAnimation()) {
                 setAnimation(getAttackAnimation());
@@ -339,13 +381,13 @@ void Player::update(float deltaTime) {
             
             // Check if attack animation is complete
             if (m_animationComplete) {
-                m_state = PlayerState::IDLE;
-                m_hasDealtDamage = false;
-                
-                // Reset combo if too much time has passed
-                if (m_attackCooldown <= 0) {
-                    m_comboCount = 0;
-                }
+                if (m_inputBuffered) {
+                    // Continue combo
+                    startNextComboAttack();
+                } else {
+                    m_state = PlayerState::IDLE;
+                    m_hasDealtDamage = false;
+                } 
             }
             break;
             
@@ -526,16 +568,32 @@ void Player::move(const Vector2D& direction) {
 }
 
 void Player::attack() {
+    // if (canAttack()) {
+    //     m_state = PlayerState::ATTACKING;
+    //     m_stateTimer = 0.6f;
+    //     m_attackCooldown = 0.7f;
+    //     m_currentStamina -= 20.0f;
+    //     m_hasDealtDamage = false;  // Reset the flag for new attack
+    //     m_swordAngle = -M_PI/3;  // Start position for swing
+    //
+    //     // Increment combo count
+    //     m_comboCount = (m_comboCount + 1) % 3;
+    // }
     if (canAttack()) {
-        m_state = PlayerState::ATTACKING;
-        m_stateTimer = 0.4f;
-        m_attackCooldown = 0.5f;
-        m_currentStamina -= 15.0f;
+        if (m_state == PlayerState::ATTACKING) {
+            // Buffer input during attack
+            m_inputBuffered = true;
+            std::cout << "Attack buffered during combo" << std::endl;
+        } else {
+            // Start new attack or combo
+            m_state = PlayerState::ATTACKING;
+            startNextComboAttack();
+        }
+
+        m_stateTimer = 0.6f;
+        m_attackCooldown = 0.7f;
+        m_currentStamina -= 20.0f;
         m_hasDealtDamage = false;  // Reset the flag for new attack
-        m_swordAngle = -M_PI/3;  // Start position for swing
-        
-        // Increment combo count
-        m_comboCount = (m_comboCount + 1) % 3;
     }
 }
 
@@ -543,6 +601,9 @@ void Player::takeDamage(float damage) {
     if (m_state != PlayerState::TAKING_DAMAGE && m_state != PlayerState::DYING && !isInvulnerable()) {
         Entity::takeDamage(damage);  // Call base class method
         
+        // Reset combo when taking damage
+        resetCombo();    
+
         if (m_currentHealth <= 0) {
             m_state = PlayerState::DYING;
         } else {
@@ -558,7 +619,7 @@ void Player::dodge(const Vector2D& direction) {
         m_stateTimer = m_dodgeDuration;
         m_dodgeCooldown = 0.5f;
         m_dodgeDirection = direction.normalized();
-        m_currentStamina -= 25.0f;
+        m_currentStamina -= 30.0f;
         // Face the dodge direction
         m_facingDirection = direction.normalized();
         updateDirection(direction); 
@@ -566,12 +627,15 @@ void Player::dodge(const Vector2D& direction) {
 }
 
 bool Player::canAttack() const {
-    return (m_state == PlayerState::IDLE || m_state == PlayerState::MOVING) && m_attackCooldown <= 0 && m_currentStamina >= 20.0f;
+    return ((m_state == PlayerState::IDLE || m_state == PlayerState::MOVING) || 
+            (m_state == PlayerState::ATTACKING && !m_inputBuffered)) && 
+           m_attackCooldown <= 0 && m_currentStamina >= 20.0f;
 }
+
 
 bool Player::canDodge() const {
     return (m_state == PlayerState::IDLE || m_state == PlayerState::MOVING) && 
-           m_dodgeCooldown <= 0 && m_currentStamina >= 25.0f;
+           m_dodgeCooldown <= 0 && m_currentStamina >= 0.0f;
 }
 
 bool Player::isInvulnerable() const {

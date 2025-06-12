@@ -143,6 +143,9 @@ bool Game::init(const char* title, int width, int height) {
 void Game::handleEvents() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        // Pass event to input handler FIRST
+        m_inputHandler->handleEvent(event);
+
         if (event.type == SDL_QUIT) {
             m_isRunning = false;
         } else if (event.type == SDL_KEYDOWN) {
@@ -164,8 +167,6 @@ void Game::handleEvents() {
         }
     }
     
-    m_inputHandler->update();
-    
     // Handle player input
     Vector2D moveDir = m_inputHandler->getMovementDirection();
     m_player->move(moveDir);
@@ -177,6 +178,8 @@ void Game::handleEvents() {
     if (m_inputHandler->isDodgePressed() && moveDir.length() > 0) {
         m_player->dodge(moveDir);
     }
+
+    m_inputHandler->update();
 }
 
 void Game::update(float deltaTime) {

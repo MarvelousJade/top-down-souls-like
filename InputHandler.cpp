@@ -1,11 +1,37 @@
-// === InputHandler.cpp ===
 #include "InputHandler.h"
 #include <SDL2/SDL_scancode.h>
+#include <iostream>
 
-InputHandler::InputHandler() : m_keyStates(nullptr) {}
+InputHandler::InputHandler() : m_keyStates(nullptr), m_attackPressed(false), m_dodgePressed(false) {
+    m_keyStates = SDL_GetKeyboardState(nullptr);
+}
+
+InputHandler::~InputHandler() {}
 
 void InputHandler::update() {
+    // Reset press flags at the start of each frame
+    m_attackPressed = false;
+    m_dodgePressed = false;
+    
+    // Update key states for movement (held keys)
     m_keyStates = SDL_GetKeyboardState(nullptr);
+}
+
+void InputHandler::handleEvent(const SDL_Event& event) {
+    if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {  // Only on first press, not repeat
+        switch (event.key.keysym.scancode) {
+            case SDL_SCANCODE_J:
+                m_attackPressed = true;
+                std::cout << "Attack key pressed via event!" << std::endl;
+                break;
+            case SDL_SCANCODE_SPACE:
+                m_dodgePressed = true;
+                std::cout << "Dodge key pressed via event!" << std::endl;
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 bool InputHandler::isKeyDown(SDL_Scancode key) const {
@@ -13,6 +39,15 @@ bool InputHandler::isKeyDown(SDL_Scancode key) const {
         return m_keyStates[key] == 1;
     }
     return false;
+}
+
+bool InputHandler::isKeyPressed(SDL_Scancode key) const {
+    if (!m_keyStates) return false;
+    
+    bool currentState = (m_keyStates[key] == 1);
+    bool pressed = currentState;
+
+    return pressed;
 }
 
 Vector2D InputHandler::getMovementDirection() const {
@@ -27,9 +62,9 @@ Vector2D InputHandler::getMovementDirection() const {
 }
 
 bool InputHandler::isAttackPressed() const {
-    return isKeyDown(SDL_SCANCODE_J);
+    return m_attackPressed;
 }
 
 bool InputHandler::isDodgePressed() const {
-    return isKeyDown(SDL_SCANCODE_SPACE);
+    return m_dodgePressed;
 }
