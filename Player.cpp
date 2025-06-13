@@ -217,9 +217,9 @@ AnimationType Player::getRunAnimation() const {
 AnimationType Player::getAttackAnimation() const {
     switch (m_currentWeapon) {
         case WeaponType::SWORD:
-            if (m_comboCount == 1) {
+            if (m_comboCount == 0) {
                 return AnimationType::SWORD_ATTACK2;
-            } else if (m_comboCount == 2) {
+            } else if (m_comboCount == 1) {
                 return AnimationType::SWORD_ATTACK1;
             }
 
