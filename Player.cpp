@@ -252,44 +252,6 @@ void Player::updateDirection(const Vector2D& moveDir) {
     }
 }
 
-void Player::updateComboSystem(float deltaTime) {
-    // Update combo reset timer
-    if (m_comboState != ComboState::NONE) {
-        m_comboResetTimer += deltaTime;
-        if (m_comboResetTimer >= m_comboResetDelay) {
-            resetCombo();
-        }
-    }
-}
-
-void Player::startNextComboAttack() {
-    switch (m_comboState) {
-        case ComboState::NONE:
-            m_comboState = ComboState::ATTACK_1;
-            break;
-        case ComboState::ATTACK_1:
-            m_comboState = ComboState::ATTACK_2;
-            break;
-        case ComboState::ATTACK_2:
-            m_comboState = ComboState::ATTACK_1;  // Loop back
-            break;
-    }
-    
-    m_state = PlayerState::ATTACKING;
-    m_hasDealtDamage = false;
-    m_inputBuffered = false;
-    m_comboResetTimer = 0.0f;  // Reset the combo timer
-    
-    std::cout << "Starting combo attack: " << (int)m_comboState << std::endl;
-}
-
-void Player::resetCombo() {
-    m_comboState = ComboState::NONE;
-    m_inputBuffered = false;
-    m_comboResetTimer = 0.0f;
-    std::cout << "Combo reset" << std::endl;
-}
-
 void Player::update(float deltaTime) {
     // Update cooldowns
     if (m_attackCooldown > 0) m_attackCooldown -= deltaTime;
@@ -358,9 +320,6 @@ void Player::update(float deltaTime) {
     //         break;
     // }
 
-    // Update combo system
-    updateComboSystem(deltaTime);
-
     // Handle state transitions and animations
     switch (m_state) {
         case PlayerState::IDLE:
@@ -381,13 +340,8 @@ void Player::update(float deltaTime) {
             
             // Check if attack animation is complete
             if (m_animationComplete) {
-                if (m_inputBuffered) {
-                    // Continue combo
-                    startNextComboAttack();
-                } else {
-                    m_state = PlayerState::IDLE;
-                    m_hasDealtDamage = false;
-                } 
+                m_state = PlayerState::IDLE;
+                m_hasDealtDamage = false;
             }
             break;
             
@@ -568,32 +522,13 @@ void Player::move(const Vector2D& direction) {
 }
 
 void Player::attack() {
-    // if (canAttack()) {
-    //     m_state = PlayerState::ATTACKING;
-    //     m_stateTimer = 0.6f;
-    //     m_attackCooldown = 0.7f;
-    //     m_currentStamina -= 20.0f;
-    //     m_hasDealtDamage = false;  // Reset the flag for new attack
-    //     m_swordAngle = -M_PI/3;  // Start position for swing
-    //
-    //     // Increment combo count
-    //     m_comboCount = (m_comboCount + 1) % 3;
-    // }
     if (canAttack()) {
-        if (m_state == PlayerState::ATTACKING) {
-            // Buffer input during attack
-            m_inputBuffered = true;
-            std::cout << "Attack buffered during combo" << std::endl;
-        } else {
-            // Start new attack or combo
-            m_state = PlayerState::ATTACKING;
-            startNextComboAttack();
-        }
-
+        m_state = PlayerState::ATTACKING;
         m_stateTimer = 0.6f;
         m_attackCooldown = 0.7f;
         m_currentStamina -= 20.0f;
         m_hasDealtDamage = false;  // Reset the flag for new attack
+        m_swordAngle = -M_PI/3;  // Start position for swing
     }
 }
 
@@ -601,9 +536,6 @@ void Player::takeDamage(float damage) {
     if (m_state != PlayerState::TAKING_DAMAGE && m_state != PlayerState::DYING && !isInvulnerable()) {
         Entity::takeDamage(damage);  // Call base class method
         
-        // Reset combo when taking damage
-        resetCombo();    
-
         if (m_currentHealth <= 0) {
             m_state = PlayerState::DYING;
         } else {
@@ -627,8 +559,7 @@ void Player::dodge(const Vector2D& direction) {
 }
 
 bool Player::canAttack() const {
-    return ((m_state == PlayerState::IDLE || m_state == PlayerState::MOVING) || 
-            (m_state == PlayerState::ATTACKING && !m_inputBuffered)) && 
+    return (m_state == PlayerState::IDLE || m_state == PlayerState::MOVING) && 
            m_attackCooldown <= 0 && m_currentStamina >= 20.0f;
 }
 

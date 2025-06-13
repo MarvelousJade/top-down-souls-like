@@ -153,12 +153,7 @@ private:
     float m_attackTimer = 0.0f;
     float m_attack1Duration = 0.5f;  // How long attack 1 lasts
     float m_attack2Duration = 0.5f;  // How long attack 2 lasts
-    
-    // NEW: Combo system methods
-    void updateComboSystem(float deltaTime);
-    void startNextComboAttack();
-    void resetCombo();
-
+    //
 public:
     Player(float x, float y);
     ~Player();
