@@ -270,19 +270,10 @@ void Player::update(float deltaTime) {
         m_currentStamina = std::min(m_maxStamina, m_currentStamina + m_staminaRegenRate * deltaTime);
     }
     
-    // Update facing direction towards boss when not attacking or dodging
-    // if (m_state == PlayerState::IDLE || m_state == PlayerState::MOVING) {
-    //     Vector2D toBoss = (m_targetPosition - m_position);
-    //     if (toBoss.length() > 0) {
-    //         m_facingDirection = toBoss.normalized();
-    //     }
-    // }
-
     // Update facing direction based on movement (not boss position)
     if (m_state == PlayerState::MOVING && m_velocity.length() > 0) {
         m_facingDirection = m_velocity.normalized();
     }
-    // When not moving, keep the last facing direction (don't auto-face boss)
  
     // Update state
     // switch (m_state) {
@@ -320,6 +311,8 @@ void Player::update(float deltaTime) {
     //         break;
     // }
 
+
+    float progress = (0.6f - m_stateTimer) / 0.6f;  // 0.0 to 1.0
     // Handle state transitions and animations
     switch (m_state) {
         case PlayerState::IDLE:
@@ -337,11 +330,14 @@ void Player::update(float deltaTime) {
             if (m_currentAnimation != getAttackAnimation()) {
                 setAnimation(getAttackAnimation());
             }
-            
+
+            m_swordAngle = -M_PI/3 + (M_PI * 2/3 * progress);
+
             // Check if attack animation is complete
             if (m_animationComplete) {
                 m_state = PlayerState::IDLE;
                 m_hasDealtDamage = false;
+                m_swordAngle = 0;
             }
             break;
             
@@ -484,7 +480,7 @@ void Player::render(SDL_Renderer* renderer) {
     }
     
     // Draw sword
-    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Silver sword
+    // SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Silver sword
     
     // Calculate sword base position (held by the player)
     Vector2D swordBase = m_position + m_facingDirection * GameUnits::toMeters(15);
@@ -497,14 +493,14 @@ void Player::render(SDL_Renderer* renderer) {
     Vector2D pixelEnd = GameUnits::toPixels(swordEnd);
 
     // Draw sword as a thick line
-    for (int i = -2; i <= 2; i++) {
-        SDL_RenderDrawLine(renderer, 
-            pixelBase.x + i, pixelBase.y,
-            pixelEnd.x + i, pixelEnd.y);
-        SDL_RenderDrawLine(renderer, 
-            pixelBase .x, pixelBase.y + i,
-            pixelEnd.x, pixelEnd.y + i);
-    }
+    // for (int i = -2; i <= 2; i++) {
+    //     SDL_RenderDrawLine(renderer, 
+    //         pixelBase.x + i, pixelBase.y,
+    //         pixelEnd.x + i, pixelEnd.y);
+    //     SDL_RenderDrawLine(renderer, 
+    //         pixelBase .x, pixelBase.y + i,
+    //         pixelEnd.x, pixelEnd.y + i);
+    // }
 }
 
 void Player::move(const Vector2D& direction) {
