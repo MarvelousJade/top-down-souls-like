@@ -262,7 +262,7 @@ void Game::update(float deltaTime) {
             m_player->setDamageDealt();
             
             // Notify AI that boss was damaged
-            // m_sifAI->OnDamaged(damage, m_player->getPosition());
+            m_sifAI->onDamaged(damage, m_player->getPosition());
         }
     }
     
@@ -276,7 +276,7 @@ void Game::update(float deltaTime) {
         isCollided = checkCollision(bossSwordBox, playerBox);
         
         if (isCollided) {
-            // m_player->takeDamage(m_boss->getAttackDamage());
+            m_player->takeDamage(m_boss->getAttackDamage());
             m_boss->setDamageDealt();
         }
     }

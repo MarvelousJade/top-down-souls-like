@@ -46,10 +46,12 @@ class HolySwordWolfAI {
     
     // Combat state
     float m_lastDamageTime = 0;
+    float m_lastAttackTime = 0;
     bool m_isGuardBroken = false;
     
     // Helper variables
     float m_actionCooldown = 0;
+    float m_idleTimer = 0;
     int m_aggressionLevel = 0; // Tracks from script's ai:GetNumber(0)
     
     // Distance thresholds
@@ -75,6 +77,7 @@ public:
     
     // Core AI functions
     void selectAction();
+    void selectIdleBehavior();
     void executeGoal(std::unique_ptr<AIGoal> goal);
     void clearGoals();
     void addGoal(std::unique_ptr<AIGoal> goal);

@@ -75,8 +75,9 @@ void AttackGoal::terminate(HolySwordWolfAI* ai) {
         // Uncomment when cancelAttack is added to Boss:
         ai->m_self->cancelAttack();
         
-        // For now, log that we wanted to cancel
-        std::cout << "AttackGoal terminated mid-attack" << std::endl;
+        if (ai->isDebugEnabled()) {
+            std::cout << "[AI] Attack terminated" << std::endl;
+        }
     }
     
     currentTime = 0;
@@ -87,17 +88,26 @@ void MoveToTargetGoal::activate(HolySwordWolfAI* ai) {
     Vector2D toTarget = ai->m_target->getPosition() - ai->m_self->getPosition();
     float currentDist = toTarget.length();
     
-    if (std::abs(currentDist - targetDistance) > 0.0f) {
+    // Add some variance to target distance to make movement more natural
+    float variance = ai->getRandomFloat(-0.5f, 0.5f);
+    float adjustedTargetDist = targetDistance + variance;
+    
+    if (std::abs(currentDist - adjustedTargetDist) > 1.0f) {  // Increased threshold
         Vector2D targetPos;
-        if (currentDist > targetDistance) {
+        if (currentDist > adjustedTargetDist) {
             // Move closer
-            targetPos = ai->m_self->getPosition() + toTarget.normalized() * (currentDist - targetDistance);
+            targetPos = ai->m_self->getPosition() + toTarget.normalized() * (currentDist - adjustedTargetDist);
         } else {
             // Move away
-            targetPos = ai->m_self->getPosition() - toTarget.normalized() * (targetDistance - currentDist);
+            targetPos = ai->m_self->getPosition() - toTarget.normalized() * (adjustedTargetDist - currentDist);
         }
         
-        float speedMultiplier = walk ? 0.5f : 1.5f;
+        // Add slight perpendicular offset for more natural movement
+        Vector2D perpendicular(-toTarget.y, toTarget.x);
+        perpendicular = perpendicular.normalized();
+        targetPos = targetPos + perpendicular * ai->getRandomFloat(-1.0f, 1.0f);
+        
+        float speedMultiplier = walk ? 0.5f : 1.0f;
         ai->m_self->startMoving(targetPos, speedMultiplier);
     }
 }
@@ -105,15 +115,17 @@ void MoveToTargetGoal::activate(HolySwordWolfAI* ai) {
 bool MoveToTargetGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     float currentDist = ai->getDistanceToTarget();
     
-    if (std::abs(currentDist - targetDistance) < 3.0f) {
+    // More lenient completion check
+    if (std::abs(currentDist - targetDistance) < 1.5f || !ai->m_self->isMoving()) {
         ai->m_self->stopMoving();
         return true;
     }
     
-    // Check if still moving
-    if (!ai->m_self->isAttacking() && !ai->m_self->isRecovering()) {
-        // Recalculate if needed
-        activate(ai);
+    // Only recalculate if target moved significantly
+    static Vector2D lastTargetPos = ai->m_target->getPosition();
+    if (lastTargetPos.distance(ai->m_target->getPosition()) > 2.0f) {
+        lastTargetPos = ai->m_target->getPosition();
+        activate(ai); // Recalculate path
     }
     
     return false;
@@ -147,7 +159,7 @@ void StepGoal::activate(HolySwordWolfAI* ai) {
 
 bool StepGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     currentProgress += deltaTime;
-    return currentProgress >= 0.3f; // Quick step
+    return currentProgress >= 0.5f; // Quick step
 }
 
 void StepGoal::terminate(HolySwordWolfAI* ai) {
@@ -161,13 +173,15 @@ void SidewayMoveGoal::activate(HolySwordWolfAI* ai) {
     Vector2D toTarget = (ai->m_target->getPosition() - ai->m_self->getPosition()).normalized();
     Vector2D sideDir = moveRight ? Vector2D(toTarget.y, -toTarget.x) : Vector2D(-toTarget.y, toTarget.x);
     
-    Vector2D targetPos = ai->m_self->getPosition() + sideDir * 100.0f;
-    ai->m_self->startMoving(targetPos, 0.8f);
+    // Vector2D targetPos = ai->m_self->getPosition() + sideDir * 100.0f;
+    // Move in an arc rather than straight sideways
+    Vector2D targetPos = ai->m_self->getPosition() + sideDir * 5.0f + toTarget * 2.0f;
+    ai->m_self->startMoving(targetPos, 0.7f);
 }
 
 bool SidewayMoveGoal::update(HolySwordWolfAI* ai, float deltaTime) {
     currentTime += deltaTime;
-    if (currentTime >= duration) {
+    if (currentTime >= duration || !ai->m_self->isMoving()) {
         ai->m_self->stopMoving();
         return true;
     }
@@ -310,9 +324,17 @@ void HolySwordWolfAI::update(float deltaTime) {
         m_debugTimer += deltaTime;
     }
     
-    // Update boss facing direction
-    if (m_self->canAct()) {
-        m_self->setFacingDirection((m_target->getPosition() - m_self->getPosition()).normalized());
+    float currentTime = SDL_GetTicks() / 1000.0f;
+
+    // Update boss facing direction (smoother rotation)
+    if (m_self->canAct() && !m_self->isMoving()) {
+        Vector2D toTarget = m_target->getPosition() - m_self->getPosition();
+        Vector2D currentFacing = m_self->getSwordBase() - m_self->getPosition();
+        
+        // Lerp facing direction for smoother rotation
+        float lerpSpeed = 5.0f * deltaTime;
+        Vector2D newFacing = currentFacing.normalized() + (toTarget.normalized() - currentFacing.normalized()) * lerpSpeed;
+        m_self->setFacingDirection(newFacing.normalized());
     }
     
     // Update timers
@@ -333,10 +355,18 @@ void HolySwordWolfAI::update(float deltaTime) {
     
     // Process current goal
     if (m_currentGoal) {
+        m_idleTimer = 0; // Reset idle timer when executing goals
+        
         if (m_currentGoal->update(this, deltaTime)) {
             if (m_debugEnabled) {
                 std::cout << "[AI] Goal completed: " << goalTypeToString(m_currentGoal->getType()) << std::endl;
             }
+
+            // Track attack completion
+            if (m_currentGoal->getType() == GoalType::ATTACK) {
+                m_lastAttackTime = currentTime;
+            }
+
             m_currentGoal->terminate(this);
             m_currentGoal.reset();
         }
@@ -355,17 +385,56 @@ void HolySwordWolfAI::update(float deltaTime) {
     // Update debug info
     updateGoalQueueDebug();
     
-    // Select new action if idle
-    if (!m_currentGoal && m_actionCooldown <= 0 && m_self->canAct()) {
-        selectAction();
-        m_actionCooldown = 0.5f;
+    // Select new action if idle - with variable cooldown
+    float dynamicCooldown = m_actionCooldown;
+    if (getDistanceToTarget() > ATTACK_FAR) {
+        dynamicCooldown = 0.3f; // Faster decisions when far
+    } else if (currentTime - m_lastAttackTime < 1.0f) {
+        dynamicCooldown = 1.0f; // Longer cooldown after recent attack
     }
+    
+    if (!m_currentGoal && m_actionCooldown <= 0 && m_self->canAct()) {
+        // Add idle behavior if standing still too long
+        if (m_idleTimer > 2.0f && getRandomInt(1, 100) <= 30) {
+            selectIdleBehavior();
+        } else {
+            selectAction();
+        }
+        
+        m_actionCooldown = dynamicCooldown;
+    }
+}
+
+void HolySwordWolfAI::selectIdleBehavior() {
+    if (m_debugEnabled) {
+        std::cout << "[AI] Selecting idle behavior" << std::endl;
+    }
+    
+    float targetDist = getDistanceToTarget();
+    int roll = getRandomInt(1, 100);
+    
+    if (targetDist > ATTACK_FAR) {
+        // Approach slowly when far
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_MID, true), "Idle: Walk closer");
+    } else if (roll <= 40) {
+        // Circle around target
+        bool circleRight = getRandomInt(1, 100) <= 50;
+        addGoalWithReason(std::make_unique<SidewayMoveGoal>(circleRight, 1.5f), "Idle: Circle");
+    } else if (roll <= 70) {
+        // Adjust distance slightly
+        float newDist = targetDist + getRandomFloat(-2.0f, 2.0f);
+        newDist = std::max(ATTACK_CLOSE - 1.0f, std::min(ATTACK_MID + 1.0f, newDist));
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(newDist, true), "Idle: Adjust position");
+    }
+    
+    m_idleTimer = 0;
 }
 
 void HolySwordWolfAI::selectAction() {
     float targetDist = getDistanceToTarget();
     float targetHP = getTargetHPRate();
     float selfHP = getSelfHPRate();
+    float timeSinceLastAttack = (SDL_GetTicks() / 1000.0f) - m_lastAttackTime;
     
     // Action percentages based on distance and state
     // 1-light combo, 2-dash attack, 3-spin attack, 4-Uppercut, 
@@ -401,8 +470,9 @@ void HolySwordWolfAI::selectAction() {
     } else {
         // Normal state behavior
         if (targetDist > ATTACK_FAR) { // > 12
-            act02Per = 70;  // Dash attack
-            act14Per = 30;
+            act02Per = 50;  // Dash attack
+            act14Per = 20;  // Sideway move
+            act15Per = 30;  // Walk to position
             reasonBuilder << " FarRange";
         } else if (targetDist > (ATTACK_MID) / 2) { // > 8
             act02Per = 50;  // Dash attack
@@ -423,19 +493,29 @@ void HolySwordWolfAI::selectAction() {
                 reasonBuilder << " Close";
         } else { // Very close
             // Check for backstep counters
-            if (isTargetBehind() && getRandomInt(1, 100) <= 80) {
+            if (isTargetBehind() && getRandomInt(1, 100) <= 60) {
                 if (isTargetOnSide(true)) {
-                    act05Per = 30; // Backstep slash right
+                    act05Per = 40; // Backstep slash right
                 } else {
-                    act06Per = 30; // Backstep slash left
+                    act06Per = 40; // Backstep slash left
                 }
                 reasonBuilder << " VeryCloseBehind";
             }
-            act01Per = 15;
-            act03Per = 15;
-            act04Per = 30;
-            act07Per = 10;
+            act01Per = 10;
+            act03Per = 10;
+            act04Per = 20;
+            act07Per = 20;
             reasonBuilder << " VeryClose";
+        }
+
+        // Reduce attack frequency if recently attacked
+        if (timeSinceLastAttack < 1.5f) {
+            act01Per = act01Per / 2;
+            act02Per = act02Per / 2;
+            act03Per = act03Per / 2;
+            act14Per += 20;
+            act15Per += 20;
+            reasonBuilder << " RecentAttack";
         }
     }
     

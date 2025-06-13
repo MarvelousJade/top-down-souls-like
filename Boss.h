@@ -37,6 +37,8 @@ private:
     BossAttackAnim m_currentAttackAnim;
     float m_animTimer;
     float m_animDuration;
+    float m_windupTimer;
+    float m_windupDuration;
     
     // Visual properties
     Vector2D m_facingDirection;
@@ -54,6 +56,7 @@ private:
     
     // Movement properties
     float m_moveSpeed;
+    float m_currentMoveSpeed;
     Vector2D m_targetMovePosition;
     
     // Helper methods
@@ -76,10 +79,11 @@ public:
     void forceIdle();
 
     // State queries for AI
-    bool isAttacking() const { return m_animState == BossAnimState::ATTACKING; }
+    bool isAttacking() const;
     bool isRecovering() const { return m_animState == BossAnimState::RECOVERING; }
     bool isMoving() const { return m_animState == BossAnimState::MOVING; };
     bool canAct() const { return m_animState == BossAnimState::IDLE || m_animState == BossAnimState::MOVING; }
+    bool isWindingUp() const;
     float getAttackRange() const { return m_attackRange; }
     float getAttackDamage() const { return m_currentAttackDamage; }
     float getAnimationProgress() const;

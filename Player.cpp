@@ -117,6 +117,8 @@ void Player::setAnimation(AnimationType animation) {
                 m_frameTime = 0.08f;  // Very fast dash
                 break;
             case AnimationType::TAKE_DAMAGE:
+                m_frameTime = 0.05f;  // Slower for impact
+                break;
             case AnimationType::DEATH:
                 m_frameTime = 0.15f;  // Slower for impact
                 break;
@@ -331,7 +333,7 @@ void Player::update(float deltaTime) {
                 setAnimation(getAttackAnimation());
             }
 
-            m_swordAngle = -M_PI/3 + (M_PI * 2/3 * progress);
+            m_swordAngle = -M_PI * 2/3 + (M_PI * progress);
 
             // Check if attack animation is complete
             if (m_animationComplete) {
