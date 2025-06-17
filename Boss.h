@@ -99,8 +99,6 @@ public:
     // Getter methods for rendering
     BossAnimState getAnimState() const { return m_animState; }
     BossAttackAnim getCurrentAttackAnim() const { return m_currentAttackAnim; }
-
-
 };
 
 #endif

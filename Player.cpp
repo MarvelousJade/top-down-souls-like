@@ -18,7 +18,7 @@ Player::Player(float x, float y)
       m_direction(PlayerDirection::DOWN),
       m_currentWeapon(WeaponType::SWORD),
       m_currentAnimation(AnimationType::SWORD_IDLE),
-      m_speed(10.0f),
+      m_speed(8.0f),
       m_maxStamina(100.0f),
       m_currentStamina(100.0f),
       m_staminaRegenRate(60.0f),
@@ -111,7 +111,7 @@ void Player::setAnimation(AnimationType animation) {
         switch (animation) {
             case AnimationType::SWORD_ATTACK1:
             case AnimationType::SWORD_ATTACK2:
-                m_frameTime = 0.1f;  // Fast attack animations
+                m_frameTime = 0.05f;  // Fast attack animations
                 break;
             case AnimationType::DASH:
                 m_frameTime = 0.08f;  // Very fast dash
@@ -522,7 +522,7 @@ void Player::move(const Vector2D& direction) {
 void Player::attack() {
     if (canAttack()) {
         m_state = PlayerState::ATTACKING;
-        m_stateTimer = 0.6f;
+        m_stateTimer = 0.3f;
         m_attackCooldown = 0.7f;
         m_currentStamina -= 20.0f;
         m_hasDealtDamage = false;  // Reset the flag for new attack

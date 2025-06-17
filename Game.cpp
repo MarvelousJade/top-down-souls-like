@@ -123,7 +123,7 @@ bool Game::init(const char* title, int width, int height) {
     m_sifAI = std::make_unique<HolySwordWolfAI>(m_boss.get(), m_player.get());
 
     // Enable AI debug by default
-    m_sifAI->setDebugEnabled(true);
+    m_sifAI->setDebugEnabled(false);
     
     m_gameRenderer = std::make_unique<Renderer>(m_renderer, width, height);
     m_inputHandler = std::make_unique<InputHandler>();

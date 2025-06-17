@@ -1,5 +1,6 @@
 #include "Boss.h"
 #include "GameUnits.h"
+#include "Sif.h"
 #include "Vector2D.h"
 #include <algorithm>
 #include <iostream>
@@ -26,7 +27,7 @@ Boss::Boss(float x, float y)
       m_currentAttackDamage(25.0f),
       m_attackRange(bossAttackRange),
       m_hasDealtDamage(false),
-      m_moveSpeed(10.0f),
+      m_moveSpeed(8.0f),
     m_currentMoveSpeed(8.0f) {
     updateSwordPosition();
 }
@@ -308,42 +309,42 @@ void Boss::startAttackAnimation(BossAttackAnim attackType) {
     // Set wind-up, animation durations and damage
     switch (attackType) {
         case BossAttackAnim::HORIZONTAL_SWING:
-            m_windupDuration = 0.3f;
+            m_windupDuration = 0.7f;
             m_animDuration = 0.4f;
             m_currentAttackDamage = m_baseAttackDamage;
             break;
         case BossAttackAnim::SPIN_ATTACK:
-            m_windupDuration = 0.4f;
+            m_windupDuration = 0.8f;
             m_animDuration = 0.8f;
             m_currentAttackDamage = m_baseAttackDamage * 1.2f;
             break;
         case BossAttackAnim::OVERHEAD_SWING:
-            m_windupDuration = 0.5f;
+            m_windupDuration = 0.9f;
             m_animDuration = 0.5f;
             m_currentAttackDamage = m_baseAttackDamage * 1.5f;
             break;
         case BossAttackAnim::UPPERCUT:
-            m_windupDuration = 0.3f;
+            m_windupDuration = 0.7f;
             m_animDuration = 0.4f;
             m_currentAttackDamage = m_baseAttackDamage * 1.3f;
             break;
         case BossAttackAnim::GROUND_SLAM:
-            m_windupDuration = 0.6f;
+            m_windupDuration = 1.0f;
             m_animDuration = 0.6f;
             m_currentAttackDamage = m_baseAttackDamage * 1.8f;
             break;
         case BossAttackAnim::DASH_ATTACK:
-            m_windupDuration = 0.2f;  // Quick wind-up for dash
+            m_windupDuration = 0.6f;  // Quick wind-up for dash
             m_animDuration = 0.4f;
             m_currentAttackDamage = m_baseAttackDamage;
             break;
         case BossAttackAnim::BACKSTEP_SLASH:
-            m_windupDuration = 0.2f;
+            m_windupDuration = 0.6f;
             m_animDuration = 0.4f;
             m_currentAttackDamage = m_baseAttackDamage * 1.1f;
             break;
         case BossAttackAnim::PROJECTILE:
-            m_windupDuration = 0.8f;  // Long wind-up for projectile
+            m_windupDuration = 1.0f;  // Long wind-up for projectile
             m_animDuration = 0.5f;
             m_currentAttackDamage = m_baseAttackDamage * 0.8f;
             break;
@@ -371,7 +372,9 @@ void Boss::stopMoving() {
 void Boss::performStep(const Vector2D& direction, float distance) {
     if (!canAct()) return;
     
-    std::cout << "Step Distance: " << distance << std::endl;
+    if (g_sifAI->isDebugEnabled()) {
+        std::cout << "Step Distance: " << distance << std::endl;
+    }
     Vector2D stepTarget = m_position + direction.normalized() * distance;
     
     // Keep in bounds

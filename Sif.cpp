@@ -201,7 +201,7 @@ HolySwordWolfAI::HolySwordWolfAI(Boss* entity, Player* player)
       m_isEnhanced(false), m_enhancedTimer(0), m_lastDamageTime(0),
       m_isGuardBroken(false), m_actionCooldown(0), m_aggressionLevel(0) {
     g_sifAI = this;  // Set global pointer for debug access
-    m_debugEnabled = true;  // Enable debug by default
+    m_debugEnabled = false;  // Enable debug by default
 }
 
 // Debug helper function implementations
