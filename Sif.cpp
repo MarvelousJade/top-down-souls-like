@@ -474,22 +474,24 @@ void HolySwordWolfAI::selectAction() {
             act14Per = 20;  // Sideway move
             act15Per = 30;  // Walk to position
             reasonBuilder << " FarRange";
-        } else if (targetDist > (ATTACK_MID) / 2) { // > 8
-            act02Per = 50;  // Dash attack
+        } else if (targetDist > ATTACK_MID) { // > 8
+            act02Per = 40;  // Dash attack
             act14Per = 30;
-            act15Per = 20;
+            act15Per = 30;
             reasonBuilder << " MidFar";
         } else if (targetDist > ATTACK_CLOSE) { // > 6
-            act01Per = 70;
-            act02Per = 5;  // Dash attack
-            act07Per = 5;   // Backstep
-            act15Per = 20; 
+            act01Per = 50;  // Light combo
+            act02Per = 5;   // Dash attack
+            act07Per = 10;  // Backstep
+            act14Per = 15;  // Sideway move
+            act15Per = 20;  // Walk to position
             reasonBuilder << " MidClose";
         } else if (targetDist > ATTACK_VERY_CLOSE) { // > 4
-                act01Per = 35;
-                act03Per = 35;
-                act04Per = 5;
+                act01Per = 25;
+                act03Per = 25;  // Spin Attack
+                act04Per = 10;   // Uppercut
                 act07Per = 25;
+                act14Per = 15;  // Sideway move
                 reasonBuilder << " Close";
         } else { // Very close
             // Check for backstep counters
@@ -502,8 +504,8 @@ void HolySwordWolfAI::selectAction() {
                 reasonBuilder << " VeryCloseBehind";
             }
             act01Per = 10;
-            act03Per = 10;
-            act04Per = 20;
+            act03Per = 20;
+            act04Per = 10;
             act07Per = 20;
             reasonBuilder << " VeryClose";
         }
@@ -539,11 +541,11 @@ void HolySwordWolfAI::selectAction() {
     // Execute selected action
     if (roll <= (cumulative += act01Per)) {
         // Action 1: Light combo
-        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_MID, targetDist > 10), m_lastActionReason + " LightCombo");
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_CLOSE - 0.5f, targetDist > 10), m_lastActionReason + " LightCombo");
         int comboRoll = getRandomInt(1, 100);
-        if (comboRoll <= 10) {
+        if (comboRoll <= 20) {
             addGoalWithReason(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1), "Combo1");
-        } else if (comboRoll <= 40) {
+        } else if (comboRoll <= 60) {
             addGoalWithReason(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1), "Combo1-2");
             addGoalWithReason(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_2), "Combo2");
         } else {
@@ -554,8 +556,8 @@ void HolySwordWolfAI::selectAction() {
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act02Per)) {
         // Action 2: Dash attack
-        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_CLOSE), m_lastActionReason + " DashAttack");
-        if (getRandomInt(1, 100) <= 30 && targetDist < ATTACK_CLOSE) {
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_CLOSE + 1.0f, true), m_lastActionReason + " DashAttack Position");
+        if (getRandomInt(1, 100) <= 40 && targetDist < ATTACK_CLOSE) {
             addGoalWithReason(std::make_unique<AttackGoal>(AttackType::DASH_ATTACK), "DashSingle");
         } else if (targetDist < ATTACK_CLOSE){
             addGoalWithReason(std::make_unique<AttackGoal>(AttackType::DASH_ATTACK), "DashCombo");
@@ -564,12 +566,12 @@ void HolySwordWolfAI::selectAction() {
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act03Per)) {
         // Action 3: Spin attack
-        addGoalWithReason(std::make_unique<MoveToTargetGoal>(4.1f), m_lastActionReason + " SpinAttack");
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_VERY_CLOSE + 0.5f), m_lastActionReason + " SpinAttack Position");
         addGoalWithReason(std::make_unique<AttackGoal>(AttackType::SPIN_ATTACK), "Spin");
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act04Per)) {
         // Action 4: Uppercut
-        addGoalWithReason(std::make_unique<MoveToTargetGoal>(1.5f), m_lastActionReason + " Uppercut");
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_VERY_CLOSE - 1.0f), m_lastActionReason + " Uppercut");
         addGoalWithReason(std::make_unique<AttackGoal>(AttackType::UPPERCUT), "Uppercut");
         m_aggressionLevel = std::max(0, m_aggressionLevel - 5);
     } else if (roll <= (cumulative += act05Per)) {
@@ -582,12 +584,12 @@ void HolySwordWolfAI::selectAction() {
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act07Per)) {
         // Action 7: Backstep
-        addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP), m_lastActionReason + " Backstep");
+        addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP, 2.5f), m_lastActionReason + " Backstep");
         m_aggressionLevel = std::max(0, m_aggressionLevel - 5);
     } else if (roll <= (cumulative += act08Per)) {
         // Action 8: Enhanced combo (if enhanced)
         if (m_isEnhanced) {
-            addGoalWithReason(std::make_unique<MoveToTargetGoal>(4.2f), m_lastActionReason + " EnhCombo");
+            addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_VERY_CLOSE + 0.5f), m_lastActionReason + " EnhCombo");
             if (getRandomInt(1, 100) <= 45) {
                 addGoalWithReason(std::make_unique<AttackGoal>(AttackType::ENHANCED_COMBO_1), "EnhCombo1");
             } else {
@@ -599,7 +601,7 @@ void HolySwordWolfAI::selectAction() {
     } else if (roll <= (cumulative += act09Per)) {
         // Action 9: Enhanced heavy (if enhanced)
         if (m_isEnhanced) {
-            addGoalWithReason(std::make_unique<MoveToTargetGoal>(3.5f), m_lastActionReason + " EnhHeavy");
+            addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_VERY_CLOSE), m_lastActionReason + " EnhHeavy");
             addGoalWithReason(std::make_unique<AttackGoal>(AttackType::ENHANCED_COMBO_2), "EnhHeavy");
         }
         m_aggressionLevel += 20;
@@ -613,7 +615,7 @@ void HolySwordWolfAI::selectAction() {
         m_aggressionLevel += 20;
     } else if (roll <= (cumulative += act12Per)) {
         // Action 12: Ground slam
-        addGoalWithReason(std::make_unique<MoveToTargetGoal>(2.0f), m_lastActionReason + " GroundSlam");
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_VERY_CLOSE - 0.5f, true), m_lastActionReason + " GroundSlam");
         if (getRandomInt(1, 100) <= 30) {
             addGoalWithReason(std::make_unique<AttackGoal>(AttackType::GROUND_SLAM), "SlamSingle");
         } else {
@@ -623,42 +625,46 @@ void HolySwordWolfAI::selectAction() {
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act13Per)) {
         // Action 13: Projectile
-        addGoalWithReason(std::make_unique<MoveToTargetGoal>(5.0f), m_lastActionReason + " Projectile");
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_MID, true), m_lastActionReason + " Projectile");
         addGoalWithReason(std::make_unique<AttackGoal>(AttackType::PROJECTILE), "Projectile");
         m_aggressionLevel += 10;
     } else if (roll <= (cumulative += act14Per)) {
         // Action 14: SidewayMove
-        addGoalWithReason(std::make_unique<SidewayMoveGoal>(true, 2.0f), m_lastActionReason + " SidewayMove");
-        m_aggressionLevel += 10;
+        float moveDuration = getRandomFloat(1.0f, 2.5f);
+        bool moveRight = getRandomInt(1, 100) <= 50;
+        addGoalWithReason(std::make_unique<SidewayMoveGoal>(moveRight, moveDuration), m_lastActionReason + " SidewayMove");
     } else if (roll <= (cumulative += act15Per)) {
-        addGoalWithReason(std::make_unique<MoveToTargetGoal>(true, 5.0f), m_lastActionReason + " Walk to target");
+        float optimalDist = ATTACK_CLOSE + getRandomFloat(-1.0f, 1.0f);
+        addGoalWithReason(std::make_unique<MoveToTargetGoal>(optimalDist, true), m_lastActionReason + " Walk to target");
     }
 
     
     // Add after-action behavior
     int afterRoll = getRandomInt(1, 100);
-    if (selfHP <= 0.1f && afterRoll > 60) {
+    if (selfHP <= 0.1f && afterRoll > 40) {
         // Low HP defensive behavior
-        if (afterRoll <= 80) {
-            addGoalWithReason(std::make_unique<MoveToTargetGoal>(3.6f), "LowHP Retreat");
+        if (afterRoll <= 70) {
+            addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_MID, true), "LowHP Retreat");
         } else {
-            addGoalWithReason(std::make_unique<SidewayMoveGoal>(getRandomInt(0, 1), 2.5f), "LowHP Sidestep");
+            addGoalWithReason(std::make_unique<SidewayMoveGoal>(getRandomInt(0, 1), 2.0f), "LowHP Sidestep");
         }
-    } else if (afterRoll > 70) {
+    } else if (afterRoll > 85 && timeSinceLastAttack < 2.0f) {
         // Normal after-action behavior
-        if (afterRoll <= 80) {
-            addGoalWithReason(std::make_unique<MoveToTargetGoal>(5.0f), "PostAttack Distance");
-        } else if (afterRoll <= 90) {
-            addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP), "PostAttack Backstep");
+        // After recent attack, add movement
+        if (afterRoll <= 90) {
+            addGoalWithReason(std::make_unique<MoveToTargetGoal>(ATTACK_CLOSE + 1.0f, true), "PostAttack Distance");
+        } else if (afterRoll <= 95) {
+            addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP, 2.0f), "PostAttack Backstep");
         } else {
             StepType sideStep = (getRandomInt(1, 100) <= 50) ? 
                                 StepType::SIDESTEP_LEFT : StepType::SIDESTEP_RIGHT;
-            addGoalWithReason(std::make_unique<StepGoal>(sideStep), "PostAttack Sidestep");
+            addGoalWithReason(std::make_unique<StepGoal>(sideStep, 2.0f), "PostAttack Sidestep");
         }
     }
     
     if (m_debugEnabled) {
-        std::cout << "[AI] Action selection complete. Aggression: " << m_aggressionLevel << std::endl;
+        std::cout << "[AI] Action selection complete. Aggression: " << m_aggressionLevel 
+                  << " TimeSinceAttack: " << timeSinceLastAttack << std::endl;
     }
 }
 
@@ -670,20 +676,22 @@ void HolySwordWolfAI::onDamaged(float damage, const Vector2D& sourcePos) {
     }
     
     if (!m_isEnhanced && getDistanceToTarget() < 6.0f) {
-        // Interrupt and counterattack
-        clearGoals();
-        
-        float targetDist = getDistanceToTarget();
-
-        int roll = getRandomInt(1, 100);
-        if (targetDist <= 2.0f) {
-            addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP), "Damage Response: Too close");
-        } else if (targetDist <= 6.0f && roll <= 50) {
-            addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP), "Damage Response: Close");
-        } else if (roll <= 75) {
-            addGoalWithReason(std::make_unique<StepGoal>(StepType::SIDESTEP_LEFT), "Damage Response: Dodge left");
-        } else {
-            addGoalWithReason(std::make_unique<StepGoal>(StepType::SIDESTEP_RIGHT), "Damage Response: Dodge right");
+        // Less aggressive interrupt
+        if (getRandomInt(1, 100) <= 60) {
+            clearGoals();
+            
+            float targetDist = getDistanceToTarget();
+            int roll = getRandomInt(1, 100);
+            
+            if (targetDist <= 2.0f) {
+                addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP, 2.5f), "Damage Response: Too close");
+            } else if (targetDist <= 6.0f && roll <= 40) {
+                addGoalWithReason(std::make_unique<StepGoal>(StepType::BACKSTEP, 2.0f), "Damage Response: Close");
+            } else if (roll <= 70) {
+                addGoalWithReason(std::make_unique<StepGoal>(StepType::SIDESTEP_LEFT, 2.0f), "Damage Response: Dodge left");
+            } else {
+                addGoalWithReason(std::make_unique<StepGoal>(StepType::SIDESTEP_RIGHT, 2.0f), "Damage Response: Dodge right");
+            }
         }
     }
 }
@@ -695,7 +703,7 @@ void HolySwordWolfAI::onGuardBroken() {
         std::cout << "[AI] Guard broken!" << std::endl;
     }
     
-    if (getDistanceToTarget() < 5.8f && getRandomInt(1, 100) <= 80) {
+    if (getDistanceToTarget() < 5.8f && getRandomInt(1, 100) <= 60) {
         clearGoals();
         addGoalWithReason(std::make_unique<AttackGoal>(AttackType::LIGHT_COMBO_1), "Guard Break Punish");
     }
@@ -709,13 +717,13 @@ void HolySwordWolfAI::onProjectileDetected(const Vector2D& projectilePos) {
     if (!m_isEnhanced) {
         float dist = getDistanceToTarget();
         
-        if ((dist <= 8 && getRandomInt(1, 100) <= 0) ||    // Near
-            (dist <= 25 && getRandomInt(1, 100) <= 30)) {   // Far
+        if ((dist <= 8 && getRandomInt(1, 100) <= 20) ||    // Near
+            (dist <= 25 && getRandomInt(1, 100) <= 40)) {   // Far
             clearGoals();
             if (getRandomInt(1, 100) <= 50) {
-                addGoalWithReason(std::make_unique<StepGoal>(StepType::SIDESTEP_LEFT), "Projectile Dodge Left");
+                addGoalWithReason(std::make_unique<StepGoal>(StepType::SIDESTEP_LEFT, 2.0f), "Projectile Dodge Left");
             } else {
-                addGoalWithReason(std::make_unique<StepGoal>(StepType::SIDESTEP_RIGHT), "Projectile Dodge Right");
+                addGoalWithReason(std::make_unique<StepGoal>(StepType::SIDESTEP_RIGHT, 2.0f), "Projectile Dodge Right");
             }
         }
     }
@@ -744,10 +752,7 @@ void HolySwordWolfAI::clearGoals() {
     
     // Force boss to idle state when clearing all goals
     // Uncomment when forceIdle is added:
-    // m_self->forceIdle();
-    
-    // For now, just stop movement
-    m_self->stopMoving();
+    m_self->forceIdle();
     
     m_goalQueue.clear();
     m_actionCooldown = 0;
@@ -792,7 +797,6 @@ float HolySwordWolfAI::getRandomFloat(float min, float max) {
 // Utility function updates
 float HolySwordWolfAI::getDistanceToTarget() const {
     float distance =  m_self->getPosition().distance(m_target->getPosition());
-    std::cout << "Distance: " << distance << std::endl;
     return distance;
 }
 
